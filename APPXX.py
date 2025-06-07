@@ -4,41 +4,68 @@ from tkinter import messagebox
 from sam_translate.sam_translate import set_root, set_sam_mini_chat_globals, create_sam_mini_chat
 from config import load_config
 
-# Load cấu hình
-config = load_config()
-XAI_API_KEY = config.get("xai_api_key", "")
-CHATGPT_API_KEY = config.get("chatgpt_api_key", "")
-LLM_API_KEY = config.get("llm_api_key", "")
-DEFAULT_TARGET_LANG = config.get("default_target_lang", "vi")
+class SamMiniChatApp:
+    def __init__(self):
+        self.root = None
+        self.config = load_config()
+        self.xai_api_key = self.config.get("xai_api_key", "")
+        self.chatgpt_api_key = self.config.get("chatgpt_api_key", "")
+        self.llm_api_key = self.config.get("llm_api_key", "")
+        self.default_target_lang = self.config.get("default_target_lang", "vi")
 
-# Đóng ứng dụng
-def on_closing():
-    print("Consolog: Đóng ứng dụng...")
-    root.destroy()
+    def validate_api_keys(self):
+        if not all([self.xai_api_key, self.chatgpt_api_key, self.llm_api_key]):
+            messagebox.showerror("Error", "API Key chưa được thiết lập. Vui lòng cập nhật trong file config.json!")
+            return False
+        return True
 
-# Khởi tạo giao diện chính
-def init_main_ui():
-    global root
-    root = tk.Tk()
-    root.title("Telegram Auto")
-    root.geometry("800x600")
-    root.eval('tk::PlaceWindow . center')
+    def on_closing(self):
+        print("Consolog: Đóng ứng dụng...")
+        if self.root:
+            self.root.destroy()
 
-    print("Consolog: Kiểm tra API Keys")
-    if not XAI_API_KEY or not CHATGPT_API_KEY or not LLM_API_KEY:
-        messagebox.showerror("Error", "API Key chưa được thiết lập. Vui lòng cập nhật trong file config.json!")
-        return
+    def init_main_ui(self):
+        print("Consolog: Kiểm tra API Keys")
+        if not self.validate_api_keys():
+            return
 
-    try:
-        set_root(root)
-        set_sam_mini_chat_globals(XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY, DEFAULT_TARGET_LANG)
-        create_sam_mini_chat()
-        print("Consolog: Sam Translate và Sam Mini Chat đã được khởi động tự động khi ứng dụng bắt đầu.")
-    except Exception as e:
-        print(f"Consolog [ERROR]: Lỗi khi khởi động Sam Translate hoặc Sam Mini Chat: {e}")
+        try:
+            # Tạo cửa sổ chính
+            self.root = tk.Tk()
+            self.root.title("Sam Mini Chat")
+            self.root.eval('tk::PlaceWindow . center')
+            
+            # Thiết lập root cho Sam Mini Chat
+            set_root(self.root)
+            
+            # Thiết lập các biến toàn cục
+            set_sam_mini_chat_globals(
+                self.xai_api_key,
+                self.chatgpt_api_key,
+                self.llm_api_key,
+                self.default_target_lang
+            )
+            
+            # Tạo widget Sam Mini Chat
+            create_sam_mini_chat()
+            
+            # Thêm xử lý đóng cửa sổ
+            self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
+            print("Consolog: Sam Mini Chat đã được khởi động làm cửa sổ chính.")
+            
+            # Chạy vòng lặp chính
+            self.root.mainloop()
+                
+        except Exception as e:
+            print(f"Consolog [ERROR]: Lỗi khi khởi động Sam Mini Chat: {e}")
+            if self.root:
+                self.root.destroy()
+            return
 
-    root.mainloop()
+def main():
+    print("Consolog: Ứng dụng khởi chạy.")
+    app = SamMiniChatApp()
+    app.init_main_ui()
 
-# Khởi chạy ứng dụng
-print("Consolog: Ứng dụng khởi chạy.")
-init_main_ui()
+if __name__ == "__main__":
+    main()

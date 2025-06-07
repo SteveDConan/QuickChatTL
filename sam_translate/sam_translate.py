@@ -60,6 +60,21 @@ firebase_url_var = None
 
 user32 = ctypes.windll.user32
 
+# Thêm các hằng số Windows API cần thiết
+HWND_TOPMOST = -1
+HWND_NOTOPMOST = -2
+SWP_NOMOVE = 0x0002
+SWP_NOSIZE = 0x0001
+SWP_NOACTIVATE = 0x0010
+EVENT_OBJECT_REORDER = 0x8004
+EVENT_SYSTEM_FOREGROUND = 0x0003
+WINEVENT_OUTOFCONTEXT = 0x0000
+WINEVENT_SKIPOWNTHREAD = 0x0001
+WINEVENT_SKIPOWNPROCESS = 0x0002
+
+# Biến toàn cục để lưu trữ callback
+z_order_callback = None
+
 def set_root(r):
     global root
     root = r
@@ -126,12 +141,16 @@ def create_sam_mini_chat():
     if root is None:
         print("Consolog [LỖI]: root chưa set. Gọi set_root(root).")
         return
-    sam_mini_chat_win = tk.Toplevel(root)
+    
+    # Sử dụng cửa sổ chính thay vì tạo Toplevel mới
+    sam_mini_chat_win = root
     sam_mini_chat_win.title("Sam Mini Chat")
-    sam_mini_chat_win.overrideredirect(True)
-    sam_mini_chat_win.attributes("-topmost", False)
+    sam_mini_chat_win.overrideredirect(True)  # Loại bỏ title bar
     sam_mini_chat_win.geometry(f"600x{WIDGET_HEIGHT}+0+0")
-    sam_mini_chat_win.withdraw()
+    
+    # Thiết lập monitoring cho Z-order
+    setup_z_order_monitoring()
+    
     frame = tk.Frame(sam_mini_chat_win)
     frame.pack(fill=tk.BOTH, expand=True)
     
@@ -150,7 +169,7 @@ def create_sam_mini_chat():
     # Tạo danh sách tên ngôn ngữ đầy đủ cho menu từ config
     lang_display_names = [lang_map[lang] for lang in all_lang_options if lang in lang_map]
     target_lang_menu = tk.OptionMenu(frame, target_lang_var, *lang_display_names, command=update_target_lang)
-    target_lang_menu.config(width=15)  # Tăng width để hiển thị đầy đủ tên ngôn ngữ
+    target_lang_menu.config(width=10)  # Giảm width để chỉ hiển thị tên ngôn ngữ
 
     # Thêm nút chọn API
     api_var = tk.StringVar(value=SELECTED_API)
@@ -177,6 +196,21 @@ def create_sam_mini_chat():
     btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
     btn_quit.grid(row=0, column=4, padx=2, sticky="e")
 
+    # Thêm khả năng di chuyển cửa sổ bằng cách kéo frame
+    def start_move(event):
+        frame.x = event.x
+        frame.y = event.y
+
+    def do_move(event):
+        deltax = event.x - frame.x
+        deltay = event.y - frame.y
+        x = sam_mini_chat_win.winfo_x() + deltax
+        y = sam_mini_chat_win.winfo_y() + deltay
+        sam_mini_chat_win.geometry(f"+{x}+{y}")
+
+    frame.bind("<Button-1>", start_move)
+    frame.bind("<B1-Motion>", do_move)
+
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
     print("Consolog: Đã tạo widget Sam Mini Chat với nút chọn ngôn ngữ đích và API.")
 
@@ -202,34 +236,75 @@ def destroy_sam_mini_chat():
             pass
     print("Consolog: Đã đóng hoàn toàn ứng dụng.")
 
+def sync_z_order_with_telegram(telegram_hwnd, widget_hwnd):
+    """Đồng bộ Z-order của widget với cửa sổ Telegram"""
+    try:
+        # Lấy handle của cửa sổ phía trên Telegram
+        hwnd_above = user32.GetWindow(telegram_hwnd, 3)  # GW_HWNDNEXT = 3
+        if hwnd_above:
+            # Đặt widget ngay sau cửa sổ phía trên Telegram
+            user32.SetWindowPos(widget_hwnd, hwnd_above, 0, 0, 0, 0, 
+                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+        else:
+            # Nếu không có cửa sổ nào phía trên, đặt widget lên trên cùng
+            user32.SetWindowPos(widget_hwnd, HWND_TOPMOST, 0, 0, 0, 0, 
+                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+            # Sau đó đặt lại về trạng thái bình thường
+            user32.SetWindowPos(widget_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, 
+                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+    except Exception as e:
+        print(f"Consolog [LỖI]: Lỗi khi đồng bộ Z-order: {e}")
+
 def update_sam_mini_chat_position():
     global sam_mini_chat_win, widget_sam_mini_chat_thread_running
     while sam_mini_chat_win is not None and widget_sam_mini_chat_thread_running:
         try:
-            sam_mini_chat_win.update_idletasks()
             hwnd = get_correct_telegram_hwnd()
-            if hwnd and not user32.IsIconic(hwnd):
-                sam_mini_chat_win.deiconify()
+            if hwnd:
+                # Lấy trạng thái cửa sổ Telegram
                 placement = WINDOWPLACEMENT()
                 placement.length = ctypes.sizeof(WINDOWPLACEMENT)
                 user32.GetWindowPlacement(hwnd, ctypes.byref(placement))
-                if placement.showCmd != 1:
-                    rect = placement.rcNormalPosition
+                
+                # Kiểm tra xem Telegram có bị minimize không
+                is_minimized = user32.IsIconic(hwnd)
+                
+                if is_minimized:
+                    # Nếu Telegram bị minimize, ẩn widget
+                    sam_mini_chat_win.withdraw()
                 else:
-                    rect = ctypes.wintypes.RECT()
-                    user32.GetWindowRect(hwnd, ctypes.byref(rect))
-                window_width = rect.right - rect.left
-                widget_width = window_width
-                x = rect.left
-                y = rect.bottom + WIDGET_Y_OFFSET
-                new_geometry = f"{widget_width}x{WIDGET_HEIGHT}+{x}+{y}"
-                sam_mini_chat_win.geometry(new_geometry)
-                sam_mini_chat_win.lift()
+                    # Nếu Telegram đang hiển thị, hiện widget và cập nhật vị trí
+                    sam_mini_chat_win.deiconify()
+                    
+                    # Lấy vị trí và kích thước của cửa sổ Telegram
+                    if placement.showCmd != 1:  # Không phải minimize
+                        rect = placement.rcNormalPosition
+                    else:
+                        rect = ctypes.wintypes.RECT()
+                        user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                    
+                    window_width = rect.right - rect.left
+                    widget_width = window_width
+                    x = rect.left
+                    y = rect.bottom + WIDGET_Y_OFFSET
+                    
+                    # Cập nhật vị trí và kích thước của widget
+                    new_geometry = f"{widget_width}x{WIDGET_HEIGHT}+{x}+{y}"
+                    sam_mini_chat_win.geometry(new_geometry)
+                    
+                    # Đồng bộ Z-order với Telegram
+                    widget_hwnd = sam_mini_chat_win.winfo_id()
+                    sync_z_order_with_telegram(hwnd, widget_hwnd)
             else:
+                # Nếu không tìm thấy Telegram, ẩn widget
                 sam_mini_chat_win.withdraw()
+                
         except tk.TclError:
             break
-        time.sleep(0.5)
+        except Exception as e:
+            print(f"Consolog [LỖI]: Lỗi khi cập nhật vị trí widget: {e}")
+            
+        time.sleep(0.1)  # Giảm thời gian sleep để cập nhật mượt hơn
 
 def send_sam_mini_chat_message():
     global sam_mini_chat_entry, sam_mini_chat_btn_send
@@ -509,3 +584,44 @@ def fetch_ngrok_url():
     except Exception as e:
         print(f"Consolog [LỖI]: Lỗi lấy ngrok URL: {e}")
         return None
+
+def win_event_callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime):
+    """Callback function để xử lý sự kiện thay đổi Z-order"""
+    global sam_mini_chat_win
+    try:
+        if event == EVENT_OBJECT_REORDER or event == EVENT_SYSTEM_FOREGROUND:
+            # Kiểm tra xem cửa sổ được kích hoạt có phải là Telegram không
+            if hwnd == get_correct_telegram_hwnd():
+                if sam_mini_chat_win and sam_mini_chat_win.winfo_exists():
+                    # Đồng bộ lại Z-order của widget
+                    widget_hwnd = sam_mini_chat_win.winfo_id()
+                    sync_z_order_with_telegram(hwnd, widget_hwnd)
+    except Exception as e:
+        print(f"Consolog [LỖI]: Lỗi trong win_event_callback: {e}")
+
+def setup_z_order_monitoring():
+    """Thiết lập monitoring cho sự kiện thay đổi Z-order"""
+    global z_order_callback
+    try:
+        # Định nghĩa kiểu callback
+        WinEventProcType = ctypes.WINFUNCTYPE(
+            None, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int
+        )
+        
+        # Tạo callback
+        z_order_callback = WinEventProcType(win_event_callback)
+        
+        # Đăng ký hook cho sự kiện
+        user32.SetWinEventHook(
+            EVENT_OBJECT_REORDER,
+            EVENT_SYSTEM_FOREGROUND,
+            0,
+            z_order_callback,
+            0,
+            0,
+            WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNTHREAD | WINEVENT_SKIPOWNPROCESS
+        )
+        
+        print("Consolog: Đã thiết lập monitoring cho sự kiện Z-order")
+    except Exception as e:
+        print(f"Consolog [LỖI]: Lỗi khi thiết lập Z-order monitoring: {e}")

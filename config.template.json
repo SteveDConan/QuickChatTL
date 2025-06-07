@@ -10,6 +10,10 @@
     "TARGET_LANG_SELECTION": "en",
     "SELECTED_API": "LLM",
     "folder_path": "PATH_TO_TELEGRAM_DATA",
+    "widget_config": {
+        "height": 80,
+        "y_offset": 1
+    },
     "language_config": {
         "available_languages": ["en", "vi", "fr", "es", "de", "zh", "km", "pt", "hi", "bn", "tl", "am", "ar", "id", "yo"],
         "language_names": {

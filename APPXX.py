@@ -110,58 +110,15 @@ def capture_window(hwnd):
 lang = {
     "title": "Telegram Auto Tool",
     "setting": "⚙️ Setting",
-    "close_telegram": "❌ Close All Telegram",
     "log_label": "Log:",
     "telegram_path_label": "Telegram Path:",
     "msg_error_path": "Invalid path!",
-    "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
-    "close_result_title": "Close Result",
     "save_telegram_path": "💾 Save Telegram Path"
 }
 
 # Kiểm tra thư viện psutil
 if not psutil:
     print("Consolog: Warning - psutil is not installed! Please install with 'pip install psutil' to check live via PID.")
-
-# Hàm tự động đóng Telegram
-def auto_close_telegram():
-    print("Consolog: Đang lấy danh sách tiến trình Telegram...")
-    try:
-        result = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq Telegram.exe", "/FO", "CSV"],
-            capture_output=True, text=True
-        )
-        output = result.stdout.strip().splitlines()
-        pids = []
-        for line in output[1:]:
-            parts = line.replace('"', '').split(',')
-            if len(parts) >= 2:
-                pid = parts[1].strip()
-                pids.append(pid)
-                print(f"Consolog: Tìm thấy tiến trình Telegram với PID: {pid}")
-        for pid in pids:
-            print(f"Consolog: Đang đóng tiến trình với PID: {pid}")
-            subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True, text=True)
-            time.sleep(0.25)
-        while True:
-            result = subprocess.run(
-                ["tasklist", "/FI", "IMAGENAME eq Telegram.exe", "/FO", "CSV"],
-                capture_output=True, text=True
-            )
-            lines = result.stdout.strip().splitlines()
-            if len(lines) <= 1:
-                print("Consolog: Tất cả tiến trình Telegram đã được đóng.")
-                break
-            print("Consolog: Vẫn còn tiến trình Telegram, chờ 0.25 giây...")
-            time.sleep(0.25)
-        return True
-    except Exception as e:
-        print(f"Consolog [ERROR]: Lỗi khi tự động tắt Telegram: {e}")
-        return False
-
-# Đóng Telegram trong luồng riêng
-def close_all_telegram_threaded():
-    threading.Thread(target=auto_close_telegram, daemon=True).start()
 
 # Ghi log
 def log_message(msg):
@@ -349,8 +306,7 @@ def init_main_ui():
     frame_buttons = tk.Frame(root)
     frame_buttons.pack(pady=5)
 
-    tk.Button(frame_buttons, text=lang["close_telegram"], command=close_all_telegram_threaded, width=18).grid(row=0, column=0, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=1, padx=5, pady=5)
+    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=0, padx=5, pady=5)
 
     frame_log = tk.Frame(root)
     frame_log.pack(pady=10)

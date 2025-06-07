@@ -1,0 +1,13 @@
+{
+    "xai_api_key": "YOUR_XAI_API_KEY",
+    "chatgpt_api_key": "YOUR_CHATGPT_API_KEY",
+    "llm_api_key": "YOUR_LLM_API_KEY",
+    "telegram_path": "PATH_TO_TELEGRAM_EXE",
+    "arrange_width": 500,
+    "arrange_height": 504,
+    "firebase_url": "YOUR_FIREBASE_URL",
+    "MY_LANG_SELECTION": "vi",
+    "TARGET_LANG_SELECTION": "km",
+    "SELECTED_API": "LLM",
+    "folder_path": "PATH_TO_TELEGRAM_DATA"
+} 

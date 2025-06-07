@@ -534,4 +534,22 @@ def fetch_ngrok_url():
 
 def open_settings_dialog():
     print("Consolog: Settings button clicked (Sam Mini Chat)")
-    open_settings(root)
+    if root is None:
+        print("Consolog [ERROR]: Root window is None")
+        return
+        
+    config = load_config()
+    
+    def on_settings_saved(new_config):
+        global XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
+        XAI_API_KEY = new_config.get("xai_api_key", "")
+        CHATGPT_API_KEY = new_config.get("chatgpt_api_key", "")
+        LLM_API_KEY = new_config.get("llm_api_key", "")
+        print(f"Consolog: Đã cập nhật API keys: XAI={XAI_API_KEY[:8] if XAI_API_KEY else None}..., ChatGPT={CHATGPT_API_KEY[:8] if CHATGPT_API_KEY else None}..., LLM={LLM_API_KEY[:8] if LLM_API_KEY else None}...")
+        messagebox.showinfo("Thành công", "Đã cập nhật cài đặt thành công!")
+    
+    try:
+        open_settings(root, callback=on_settings_saved)
+    except Exception as e:
+        print(f"Consolog [ERROR]: Lỗi khi mở dialog settings: {e}")
+        messagebox.showerror("Lỗi", f"Không thể mở cửa sổ cài đặt: {e}")

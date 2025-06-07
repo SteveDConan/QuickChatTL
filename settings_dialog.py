@@ -2,7 +2,19 @@ import tkinter as tk
 from tkinter import messagebox
 from config import load_config, save_config
 
-def open_settings(root):
+def center_window(win, width, height):
+    win.update_idletasks()
+    screen_width = win.winfo_screenwidth()
+    screen_height = win.winfo_screenheight()
+    x = (screen_width - width) // 2
+    y = (screen_height - height) // 2
+    win.geometry(f"{width}x{height}+{x}+{y}")
+
+def open_settings(root, callback=None):
+    if root is None:
+        print("Consolog [ERROR]: Root window is None")
+        return
+        
     config = load_config()
     XAI_API_KEY = config.get("xai_api_key", "")
     CHATGPT_API_KEY = config.get("chatgpt_api_key", "")
@@ -22,6 +34,7 @@ def open_settings(root):
     popup = tk.Toplevel(root)
     popup.title("Setting - Tùy chỉnh sắp xếp & API Keys")
     center_window(popup, 550, 450)
+    popup.attributes("-topmost", True)  # Đảm bảo cửa sổ luôn hiển thị trên cùng
 
     lbl_info = tk.Label(popup, text="Nhập kích thước cửa sổ sắp xếp:\nx = (số cột) × Custom Width, y = (số hàng) × Custom Height", wraplength=530)
     lbl_info.pack(pady=10)
@@ -52,8 +65,30 @@ def open_settings(root):
     llm_key_entry.insert(0, LLM_API_KEY)
     llm_key_entry.pack(pady=5)
 
+    def validate_api_keys():
+        xai_key = xai_key_entry.get().strip()
+        chatgpt_key = chatgpt_key_entry.get().strip()
+        llm_key = llm_key_entry.get().strip()
+
+        if xai_key and not xai_key.startswith("xai-"):
+            messagebox.showerror("Lỗi", "XAI API Key phải bắt đầu bằng 'xai-'")
+            return False
+        
+        if chatgpt_key and not chatgpt_key.startswith("sk-"):
+            messagebox.showerror("Lỗi", "ChatGPT API Key phải bắt đầu bằng 'sk-'")
+            return False
+        
+        if llm_key and not llm_key.startswith("llm-"):
+            messagebox.showerror("Lỗi", "LLM API Key phải bắt đầu bằng 'llm-'")
+            return False
+
+        return True
+
     def save_settings():
         try:
+            if not validate_api_keys():
+                return
+
             arrange_width = int(entry_width.get())
             arrange_height = int(entry_height.get())
             config["arrange_width"] = arrange_width
@@ -73,6 +108,10 @@ def open_settings(root):
             save_config(config)
             print("Consolog: Đã lưu cấu hình Setting")
             log_message("Đã lưu cấu hình!")
+            
+            if callback:
+                callback(config)
+                
             popup.destroy()
         except Exception as e:
             log_message(f"Giá trị không hợp lệ: {e}")
@@ -82,12 +121,4 @@ def open_settings(root):
     btn_save.pack(pady=10)
     popup.transient(root)
     popup.grab_set()
-    root.wait_window(popup)
-
-def center_window(win, width, height):
-    win.update_idletasks()
-    screen_width = win.winfo_screenwidth()
-    screen_height = win.winfo_screenheight()
-    x = (screen_width - width) // 2
-    y = (screen_height - height) // 2
-    win.geometry(f"{width}x{height}+{x}+{y}") 
+    root.wait_window(popup) 

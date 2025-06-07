@@ -141,7 +141,36 @@ def on_closing():
 def init_main_ui():
     global root, text_log, telegram_path_entry, DEFAULT_TELEGRAM_PATH, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
     root = tk.Tk()
-    root.withdraw()  # Hide the main window
+    root.title("Telegram Auto")
+    root.geometry("800x600")
+    center_window(root, 800, 600)
+
+    # Tạo frame chính
+    main_frame = tk.Frame(root)
+    main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+    # Tạo frame cho đường dẫn Telegram
+    telegram_frame = tk.Frame(main_frame)
+    telegram_frame.pack(fill=tk.X, pady=5)
+    tk.Label(telegram_frame, text="Đường dẫn Telegram:").pack(side=tk.LEFT)
+    telegram_path_entry = tk.Entry(telegram_frame, width=50)
+    telegram_path_entry.pack(side=tk.LEFT, padx=5)
+    telegram_path_entry.insert(0, DEFAULT_TELEGRAM_PATH)
+    btn_browse = tk.Button(telegram_frame, text="Browse", command=save_telegram_path)
+    btn_browse.pack(side=tk.LEFT)
+
+    # Tạo frame cho log
+    log_frame = tk.Frame(main_frame)
+    log_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+    text_log = tk.Text(log_frame, height=20)
+    text_log.pack(fill=tk.BOTH, expand=True)
+    text_log.name = 'text_log'  # Đặt tên cho widget để có thể truy cập sau này
+
+    # Tạo frame cho các nút
+    button_frame = tk.Frame(main_frame)
+    button_frame.pack(fill=tk.X, pady=5)
+    btn_settings = tk.Button(button_frame, text="Settings", command=lambda: open_settings(root))
+    btn_settings.pack(side=tk.LEFT, padx=5)
 
     print("Consolog: Kiểm tra Telegram Path từ màn hình chính thay vì Settings")
     

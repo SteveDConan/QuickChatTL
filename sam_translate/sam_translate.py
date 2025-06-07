@@ -16,12 +16,6 @@ try:
 except ImportError:
     psutil = None
 
-try:
-    import keyboard
-except ImportError:
-    keyboard = None
-    print("Consolog [CẢNH BÁO]: Thư viện 'keyboard' chưa được cài đặt. Phím nóng sẽ không hoạt động. Cài đặt bằng 'pip install keyboard'.")
-
 # Lấy API keys và Firebase URL từ config.json
 config = load_config()
 XAI_API_KEY = config.get("xai_api_key", "")
@@ -95,15 +89,10 @@ original_text = ""
 
 print("Consolog: Đã bổ sung ngôn ngữ Yoruba (yo) vào all_lang_options và lang_map.")
 
-# Biến để theo dõi trạng thái chờ phím cho ngôn ngữ trùng
-waiting_for_language_key = False
-possible_languages = []
-
 def set_root(r):
     global root
     root = r
-    setup_hotkeys()  # Thiết lập phím nóng khi set root
-    print("Consolog: Đặt root window cho Sam Translate và khởi tạo phím nóng.")
+    print("Consolog: Đặt root window cho Sam Translate.")
 
 def prompt_for_firebase_url():
     global FIREBASE_URL
@@ -140,98 +129,6 @@ def prompt_for_firebase_url():
     tk.Button(dialog, text="OK", command=save_url).pack(pady=10)
     dialog.wait_window()
     return FIREBASE_URL
-
-def setup_hotkeys():
-    if keyboard is None:
-        print("Consolog [LỖI]: Không thể thiết lập phím nóng vì thiếu thư viện 'keyboard'.")
-        return
-
-    # Tạo danh sách ngôn ngữ theo chữ cái đầu
-    lang_by_first_letter = {}
-    for lang in all_lang_options:
-        first_letter = lang[0].lower()
-        if first_letter not in lang_by_first_letter:
-            lang_by_first_letter[first_letter] = []
-        lang_by_first_letter[first_letter].append(lang)
-    print(f"Consolog: Đã tạo danh sách ngôn ngữ theo chữ cái đầu: {lang_by_first_letter}")
-
-    def handle_hotkey(first_letter):
-        global waiting_for_language_key, possible_languages, TARGET_LANG_SELECTION, target_lang_var, hwnd_target_lang
-        print(f"Consolog: Phím nóng Ctrl+Alt+{first_letter.upper()} được nhấn.")
-        langs = lang_by_first_letter.get(first_letter.lower(), [])
-        if not langs:
-            print(f"Consolog: Không có ngôn ngữ bắt đầu bằng '{first_letter}'.")
-            return
-        if len(langs) == 1:
-            # Trường hợp chỉ có 1 ngôn ngữ
-            TARGET_LANG_SELECTION = langs[0]
-            print(f"Consolog: Đặt TARGET_LANG_SELECTION = {TARGET_LANG_SELECTION}")
-            if target_lang_var:
-                target_lang_var.set(TARGET_LANG_SELECTION)
-                print(f"Consolog: Đã cập nhật target_lang_var thành {TARGET_LANG_SELECTION}")
-                if sam_translate_win:
-                    sam_translate_win.update_idletasks()
-            else:
-                print("Consolog [LỖI]: target_lang_var không được khởi tạo.")
-            hwnd = get_correct_telegram_hwnd()
-            if hwnd:
-                hwnd_target_lang[hwnd] = TARGET_LANG_SELECTION
-                print(f"Consolog: Đã cập nhật hwnd_target_lang cho hwnd={hwnd} thành {TARGET_LANG_SELECTION}")
-            else:
-                print("Consolog [LỖI]: Không tìm thấy Telegram active.")
-        else:
-            # Trường hợp có nhiều ngôn ngữ trùng chữ cái đầu
-            waiting_for_language_key = True
-            possible_languages = langs
-            print(f"Consolog: Đang chờ phím tiếp theo để chọn ngôn ngữ: {langs}")
-            timer = threading.Timer(2.0, reset_language_selection)
-            timer.start()
-
-    def on_key_press(key):
-        global waiting_for_language_key, possible_languages, TARGET_LANG_SELECTION, target_lang_var, hwnd_target_lang
-        if waiting_for_language_key:
-            key_name = key.name.lower()
-            for lang in possible_languages:
-                if len(lang) > 1 and lang[1].lower() == key_name:
-                    TARGET_LANG_SELECTION = lang
-                    if target_lang_var:
-                        target_lang_var.set(lang)
-                        print(f"Consolog: Đã cập nhật target_lang_var thành {lang}")
-                        if sam_translate_win:
-                            sam_translate_win.update_idletasks()
-                    else:
-                        print("Consolog [LỖI]: target_lang_var không được khởi tạo.")
-                    hwnd = get_correct_telegram_hwnd()
-                    if hwnd:
-                        hwnd_target_lang[hwnd] = lang
-                        print(f"Consolog: Đã cập nhật hwnd_target_lang cho hwnd={hwnd} thành {lang}")
-                    else:
-                        print("Consolog [LỖI]: Không tìm thấy Telegram active.")
-                    waiting_for_language_key = False
-                    possible_languages = []
-                    print(f"Consolog: Chuyển ngôn ngữ đối phương sang {lang_map[lang]} bởi phím {key_name}")
-                    return
-
-    def reset_language_selection():
-        global waiting_for_language_key, possible_languages
-        if waiting_for_language_key:
-            waiting_for_language_key = False
-            possible_languages = []
-            print("Consolog: Hủy chọn ngôn ngữ do hết thời gian.")
-
-    # Đăng ký phím nóng cho từng chữ cái đầu
-    for first_letter in lang_by_first_letter:
-        try:
-            keyboard.add_hotkey(f"ctrl+alt+{first_letter}", lambda fl=first_letter: handle_hotkey(fl))
-            print(f"Consolog: Đã đăng ký phím nóng Ctrl+Alt+{first_letter.upper()} thành công.")
-        except Exception as e:
-            print(f"Consolog [LỖI]: Không thể đăng ký phím nóng Ctrl+Alt+{first_letter.upper()}: {e}")
-
-    if keyboard:
-        keyboard.on_press(on_key_press)
-        print("Consolog: Đã thiết lập lắng nghe phím để chọn ngôn ngữ khi có trùng.")
-
-    print("Consolog: Đã hoàn tất thiết lập phím nóng.")
 
 def set_sam_translate_globals(xai_api_key, chatgpt_api_key, llm_api_key, translation_only_flag, default_lang):
     global XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY, TRANSLATION_ONLY, DEFAULT_TARGET_LANG

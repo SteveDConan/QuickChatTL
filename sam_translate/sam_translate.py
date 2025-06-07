@@ -35,7 +35,7 @@ SAM_TRANSLATE_TEXT_WIDTH = 35
 
 # Biến cấu hình kích thước cho Sam Mini Chat
 WIDGET_HEIGHT = 32
-WIDGET_Y_OFFSET = 10
+WIDGET_Y_OFFSET = 1
 
 root = None
 TRANSLATION_ONLY = True
@@ -716,7 +716,7 @@ class WINDOWPLACEMENT(ctypes.Structure):
     ]
 
 def create_sam_mini_chat():
-    global sam_mini_chat_win, sam_mini_chat_entry, sam_mini_chat_pause_button, sam_mini_chat_btn_send
+    global sam_mini_chat_win, sam_mini_chat_entry, sam_mini_chat_btn_send
     if root is None:
         print("Consolog [LỖI]: root chưa set. Gọi set_root(root).")
         return
@@ -734,11 +734,8 @@ def create_sam_mini_chat():
     sam_mini_chat_entry.bind("<Return>", lambda event: send_sam_mini_chat_message())
     sam_mini_chat_btn_send = tk.Button(frame, text="Send", command=send_sam_mini_chat_message, width=8)
     sam_mini_chat_btn_send.grid(row=0, column=1, padx=2, sticky="e")
-    btn_zoom = tk.Button(frame, text="Zoom", command=toggle_sam_translate_zoom, width=8)
-    btn_zoom.grid(row=0, column=2, padx=2, sticky="e")
-    sam_mini_chat_pause_button = btn_zoom
     btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
-    btn_quit.grid(row=0, column=3, padx=2, sticky="e")
+    btn_quit.grid(row=0, column=2, padx=2, sticky="e")
 
     create_sam_translate()
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
@@ -804,11 +801,9 @@ def destroy_sam_mini_chat():
                 sam_mini_chat_win.destroy()
             sam_mini_chat_win = None
             sam_mini_chat_entry = None
-            sam_mini_chat_pause_button = None
         except tk.TclError:
             sam_mini_chat_win = None
             sam_mini_chat_entry = None
-            sam_mini_chat_pause_button = None
 
 def update_sam_mini_chat_position():
     global sam_mini_chat_win, widget_sam_mini_chat_thread_running
@@ -829,7 +824,7 @@ def update_sam_mini_chat_position():
                 window_width = rect.right - rect.left
                 widget_width = window_width
                 x = rect.left
-                y = rect.top - WIDGET_HEIGHT - WIDGET_Y_OFFSET
+                y = rect.bottom + WIDGET_Y_OFFSET
                 new_geometry = f"{widget_width}x{WIDGET_HEIGHT}+{x}+{y}"
                 sam_mini_chat_win.geometry(new_geometry)
                 sam_mini_chat_win.lift()
@@ -838,38 +833,6 @@ def update_sam_mini_chat_position():
         except tk.TclError:
             break
         time.sleep(0.5)
-
-def toggle_sam_translate_zoom():
-    global sam_translate_win
-    try:
-        if sam_translate_win is None or not sam_translate_win.winfo_exists():
-            create_sam_translate()
-        else:
-            state = sam_translate_win.state()
-            if state in ("withdrawn", "iconic"):
-                sam_translate_win.deiconify()
-    except tk.TclError:
-        create_sam_translate()
-
-    hwnd = get_correct_telegram_hwnd()
-    if hwnd and not user32.IsIconic(hwnd):
-        placement = WINDOWPLACEMENT()
-        placement.length = ctypes.sizeof(WINDOWPLACEMENT)
-        user32.GetWindowPlacement(hwnd, ctypes.byref(placement))
-        if placement.showCmd != 1:
-            rect = placement.rcNormalPosition
-        else:
-            rect = ctypes.wintypes.RECT()
-            user32.GetWindowRect(hwnd, ctypes.byref(rect))
-        x = rect.right + 10
-        y = rect.top
-    else:
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        x = screen_width - SAM_TRANSLATE_WIDTH - SAM_TRANSLATE_X_OFFSET
-        y = screen_height - SAM_TRANSLATE_HEIGHT - SAM_TRANSLATE_Y_OFFSET
-    sam_translate_win.geometry(f"{SAM_TRANSLATE_WIDTH}x{SAM_TRANSLATE_HEIGHT}+{x}+{y}")
-    sam_translate_win.lift()
 
 def send_message_to_telegram_input(hwnd, message):
     rect = ctypes.wintypes.RECT()

@@ -36,10 +36,6 @@ LLM_API_KEY = config.get("llm_api_key", "")
 TRANSLATION_ONLY = config.get("translation_only", True)
 DEFAULT_TARGET_LANG = config.get("default_target_lang", "vi")
 DEFAULT_TELEGRAM_PATH = config.get("telegram_path", "")
-CURRENT_VERSION = "1.05"
-GITHUB_USER = "nunerit"
-GITHUB_REPO = "TelegramAuto"
-VERSION_INFO = "Version 1.0.5 - Copyright SAMADS"
 MARKER_IMAGE_PATH = os.path.join(os.getcwd(), "marker_image.png")
 arrange_width = config.get("arrange_width", 500)
 arrange_height = config.get("arrange_height", 504)
@@ -117,7 +113,6 @@ languages = {
         "setting": "⚙️ Setting",
         "close_telegram": "❌ Đóng All Telegram",
         "arrange_telegram": "🟣 Sắp xếp Telegram",
-        "check_update": "🔄 Check for Updates",
         "log_label": "Tiến trình:",
         "telegram_path_label": "Đường dẫn Telegram:",
         "lang_select_title": "Chọn ngôn ngữ",
@@ -127,9 +122,6 @@ languages = {
         "msg_error_path": "Đường dẫn không hợp lệ!",
         "close_result": "Đóng All Telegram:\nĐã đóng: {closed}\nLỗi: {errors}",
         "arrange_result": "Đã sắp xếp {count} cửa sổ Telegram.",
-        "update_available": "Phiên bản {version} có sẵn. Bạn có muốn cập nhật không?",
-        "no_updates": "Bạn đã có phiên bản mới nhất.",
-        "update_error": "Lỗi kiểm tra cập nhật.",
         "close_result_title": "Kết quả đóng",
         "save_telegram_path": "💾 Lưu Telegram Path"
     },
@@ -138,7 +130,6 @@ languages = {
         "setting": "⚙️ Setting",
         "close_telegram": "❌ Close All Telegram",
         "arrange_telegram": "🟣 Arrange Telegram",
-        "check_update": "🔄 Check for Updates",
         "log_label": "Log:",
         "telegram_path_label": "Telegram Path:",
         "lang_select_title": "Select Language",
@@ -148,9 +139,6 @@ languages = {
         "msg_error_path": "Invalid path!",
         "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
         "arrange_result": "Arranged {count} Telegram windows.",
-        "update_available": "Version {version} is available. Do you want to update?",
-        "no_updates": "You already have the latest version.",
-        "update_error": "Error checking for updates.",
         "close_result_title": "Close Result",
         "save_telegram_path": "💾 Save Telegram Path"
     },
@@ -159,7 +147,6 @@ languages = {
         "setting": "⚙️ Setting",
         "close_telegram": "❌ 关闭所有 Telegram",
         "arrange_telegram": "🟣 排列 Telegram",
-        "check_update": "🔄 检查更新",
         "log_label": "Log:",
         "telegram_path_label": "Telegram Path:",
         "lang_select_title": "Select Language",
@@ -169,9 +156,6 @@ languages = {
         "msg_error_path": "Invalid path!",
         "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
         "arrange_result": "Arranged {count} Telegram windows.",
-        "update_available": "Version {version} is available. Do you want to update?",
-        "no_updates": "You already have the latest version.",
-        "update_error": "Error checking for updates.",
         "close_result_title": "Close Result",
         "save_telegram_path": "💾 Save Telegram Path"
     }
@@ -182,18 +166,6 @@ lang = {}
 # Kiểm tra thư viện psutil
 if not psutil:
     print("Consolog: Cảnh báo - psutil chưa được cài đặt! Vui lòng cài bằng 'pip install psutil' để check live qua PID.")
-
-# Hàm cảnh báo trước khi check live
-def warn_check_live():
-    warning_msg = (
-        "【Tiếng Việt】: Để đảm bảo tính năng Check live hoạt động chính xác và hiệu quả, vui lòng đóng tất cả các phiên bản Telegram đang chạy trên máy tính của bạn. Bạn có muốn đóng chúng ngay bây giờ?\n"
-        "【English】: To ensure the Check live feature works accurately and efficiently, please close all running Telegram instances on your computer. Would you like to close them now?\n"
-        "【中文】: 为了确保 'Check live' 功能准确高效地运行，请关闭您电脑上所有正在运行的 Telegram 程序。您是否希望立即关闭它们？"
-    )
-    res = messagebox.askyesno("Cảnh báo", warning_msg)
-    if res:
-        close_all_telegram_threaded()
-    check_live_window()
 
 # Hàm tự động đóng Telegram
 def auto_close_telegram():
@@ -334,118 +306,6 @@ def download_update_with_progress(download_url):
         print(f"Consolog [UPDATE ERROR]: Lỗi tải cập nhật: {e}")
         progress_win.destroy()
 
-# Sắp xếp cửa sổ Telegram
-def arrange_telegram_windows(custom_width=500, custom_height=504, for_check_live=False):
-    print(f"Consolog: Sắp xếp cửa sổ Telegram với kích thước {custom_width}x{custom_height}... For check live: {for_check_live}")
-    my_hwnd = root.winfo_id()
-    handles = []
-    seen_pids = set()
-
-    @ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
-    def enum_callback(hwnd, lParam):
-        if hwnd == my_hwnd:
-            return True
-        if user32.IsWindowVisible(hwnd):
-            pid = ctypes.c_ulong()
-            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-            process_name = ""
-            try:
-                if psutil:
-                    process = psutil.Process(pid.value)
-                    process_name = process.name()
-            except:
-                pass
-            if process_name.lower() == "telegram.exe":
-                if for_check_live:
-                    handles.append(hwnd)
-                    print(f"Consolog: Thêm cửa sổ HWND {hwnd} từ PID {pid.value} (check live mode)")
-                else:
-                    if pid.value not in seen_pids:
-                        seen_pids.add(pid.value)
-                        handles.append(hwnd)
-                        print(f"Consolog: Thêm cửa sổ HWND {hwnd} từ PID {pid.value}")
-        return True
-
-    user32.EnumWindows(enum_callback, 0)
-    n = len(handles)
-    print(f"Consolog: Tìm thấy {n} cửa sổ Telegram.")
-    if n == 0:
-        log_message("Không tìm thấy cửa sổ Telegram nào.")
-        return
-
-    screen_width = user32.GetSystemMetrics(0)
-    screen_height = user32.GetSystemMetrics(1)
-    SWP_NOZORDER = 0x0004
-    SWP_SHOWWINDOW = 0x0040
-
-    if for_check_live:
-        max_cols = screen_width // custom_width
-        max_rows = screen_height // custom_height
-        if max_cols < 1:
-            max_cols = 1
-        if max_rows < 1:
-            max_rows = 1
-        capacity = max_cols * max_rows
-
-        if n <= capacity:
-            for index, hwnd in enumerate(handles):
-                row = index // max_cols
-                col = index % max_cols
-                x = col * custom_width
-                y = row * custom_height
-                user32.SetWindowPos(hwnd, None, x, y, custom_width, custom_height, SWP_NOZORDER | SWP_SHOWWINDOW)
-                print(f"Consolog: Di chuyển cửa sổ HWND {hwnd} đến vị trí ({x}, {y})")
-        else:
-            adjusted_width = screen_width // max_cols
-            adjusted_height = screen_height // ((n + max_cols - 1) // max_cols)
-            for index, hwnd in enumerate(handles):
-                row = index // max_cols
-                col = index % max_cols
-                x = col * adjusted_width
-                y = row * adjusted_height
-                user32.SetWindowPos(hwnd, None, x, y, adjusted_width, adjusted_height, SWP_NOZORDER | SWP_SHOWWINDOW)
-                print(f"Consolog: Di chuyển và thu nhỏ cửa sổ HWND {hwnd} đến vị trí ({x}, {y}) với kích thước {adjusted_width}x{adjusted_height}")
-
-        RDW_INVALIDATE = 0x1
-        RDW_UPDATENOW = 0x100
-        RDW_ALLCHILDREN = 0x80
-        for hwnd in handles:
-            user32.RedrawWindow(hwnd, None, None, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN)
-            time.sleep(0.25)
-    else:
-        max_cols = screen_width // custom_width
-        max_rows = screen_height // custom_height
-        if max_cols < 1:
-            max_cols = 1
-        if max_rows < 1:
-            max_rows = 1
-        capacity = max_cols * max_rows
-
-        if n <= capacity:
-            for index, hwnd in enumerate(handles):
-                row = index // max_cols
-                col = index % max_cols
-                x = col * custom_width
-                y = row * custom_height
-                user32.SetWindowPos(hwnd, None, x, y, custom_width, custom_height, SWP_NOZORDER | SWP_SHOWWINDOW)
-                time.sleep(0.25)
-                print(f"Consolog: Di chuyển cửa sổ HWND {hwnd} đến vị trí ({x}, {y})")
-        else:
-            offset_x = 30
-            offset_y = 30
-            for index, hwnd in enumerate(handles):
-                x = (index % max_cols) * offset_x
-                y = (index % max_rows) * offset_y
-                if x + custom_width > screen_width:
-                    x = screen_width - custom_width
-                if y + custom_height > screen_height:
-                    y = screen_height - custom_height
-                user32.SetWindowPos(hwnd, None, x, y, custom_width, custom_height, SWP_NOZORDER | SWP_SHOWWINDOW)
-                time.sleep(0.25)
-                print(f"Consolog: (Cascade) Di chuyển cửa sổ HWND {hwnd} đến vị trí ({x}, {y})")
-
-    log_message(lang["arrange_result"].format(count=n))
-
 # Ghi log
 def log_message(msg):
     text_log.insert(tk.END, msg + "\n")
@@ -506,9 +366,6 @@ def open_settings():
     llm_key_entry.insert(0, LLM_API_KEY)
     llm_key_entry.pack(pady=5)
 
-    startup_var = tk.BooleanVar(value=config.get("startup", False))
-    tk.Checkbutton(popup, text="Khởi động cùng Windows", variable=startup_var).pack(pady=5)
-
     def save_settings():
         global arrange_width, arrange_height, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
         try:
@@ -528,16 +385,10 @@ def open_settings():
             config["xai_api_key"] = XAI_API_KEY
             config["chatgpt_api_key"] = CHATGPT_API_KEY
             config["llm_api_key"] = LLM_API_KEY
-            config["startup"] = startup_var.get()
-            print("Consolog: Lưu cấu hình Settings")
             save_config(config)
             print("Consolog: Đã lưu cấu hình Setting")
             log_message("Đã lưu cấu hình!")
             popup.destroy()
-            if config["startup"]:
-                add_to_startup()
-            else:
-                remove_from_startup()
         except Exception as e:
             log_message(f"Giá trị không hợp lệ: {e}")
             print(f"Consolog [ERROR]: Lỗi lưu cấu hình Setting: {e}")
@@ -547,35 +398,6 @@ def open_settings():
     popup.transient(root)
     popup.grab_set()
     root.wait_window(popup)
-
-# Thêm vào startup
-def add_to_startup():
-    try:
-        import winshell
-        startup_folder = winshell.startup()
-        shortcut_path = os.path.join(startup_folder, "TelegramAuto.lnk")
-        target = os.path.abspath(__file__)
-        winshell.CreateShortcut(
-            Path=shortcut_path,
-            Target=target,
-            Icon=(target, 0),
-            Description="TelegramAuto Startup"
-        )
-        print("Consolog: Đã thêm ứng dụng vào startup.")
-    except Exception as e:
-        log_message(f"Lỗi khi thêm vào startup: {e}")
-
-# Xóa khỏi startup
-def remove_from_startup():
-    try:
-        import winshell
-        startup_folder = winshell.startup()
-        shortcut_path = os.path.join(startup_folder, "TelegramAuto.lnk")
-        if os.path.exists(shortcut_path):
-            os.remove(shortcut_path)
-            print("Consolog: Đã xóa ứng dụng khỏi startup.")
-    except Exception as e:
-        log_message(f"Lỗi khi xóa khỏi startup: {e}")
 
 # Căn giữa cửa sổ
 def center_window(win, width, height):
@@ -603,7 +425,6 @@ def select_language():
             font=("Arial Unicode MS", 10)
         ).pack(anchor="w", padx=20)
 
-    tk.Label(lang_window, text=VERSION_INFO, font=("Arial Unicode MS", 8)).pack(pady=5)
     tk.Button(lang_window, text="OK", command=lambda: set_language(language_var, lang_window), font=("Arial Unicode MS", 10)).pack(pady=10)
     lang_window.mainloop()
 
@@ -671,8 +492,6 @@ def init_main_ui():
     default_font.configure(family="Arial Unicode MS", size=10)
     root.option_add("*Font", default_font)
 
-    threading.Thread(target=check_for_updates, daemon=True).start()
-
     print("Consolog: Kiểm tra Telegram Path từ màn hình chính thay vì Settings")
     tk.Label(root, text=lang["title"], font=("Arial Unicode MS", 14, "bold")).pack(pady=10)
 
@@ -705,7 +524,6 @@ def init_main_ui():
     tk.Button(frame_buttons, text=lang["close_telegram"], command=close_all_telegram_threaded, width=18).grid(row=0, column=0, padx=5, pady=5)
     tk.Button(frame_buttons, text=lang["arrange_telegram"], command=lambda: arrange_telegram_windows(arrange_width, arrange_height), width=18).grid(row=0, column=1, padx=5, pady=5)
     tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=2, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["check_update"], command=check_for_updates, width=18).grid(row=1, column=1, padx=5, pady=5)
 
     frame_log = tk.Frame(root)
     frame_log.pack(pady=10)
@@ -713,7 +531,6 @@ def init_main_ui():
     text_log = tk.Text(frame_log, width=70, height=10)
     text_log.pack()
 
-    tk.Label(root, text=VERSION_INFO, font=("Arial Unicode MS", 8)).pack(side="bottom", fill="x", pady=5)
     root.protocol("WM_DELETE_WINDOW", on_closing)
 
     try:

@@ -143,7 +143,7 @@ def create_sam_mini_chat() -> None:
     style = {
         "bg": "#f0f0f0",
         "fg": "#333333",
-        "font": ("Segoe UI", 10),
+        "font": ("Segoe UI", 11),
         "relief": "flat",
         "borderwidth": 0
     }
@@ -208,7 +208,7 @@ def create_sam_mini_chat() -> None:
         height=1,
         wrap=tk.WORD,
         padx=5,
-        pady=2
+        pady=3
     )
     window_state.sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=5, pady=5)
     frame.columnconfigure(0, weight=1)

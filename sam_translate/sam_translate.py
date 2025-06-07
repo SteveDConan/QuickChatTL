@@ -151,14 +151,51 @@ def create_sam_mini_chat():
     # Thiết lập monitoring cho Z-order
     setup_z_order_monitoring()
     
-    frame = tk.Frame(sam_mini_chat_win)
+    # Tạo frame chính với style hiện đại
+    frame = tk.Frame(sam_mini_chat_win, bg="#f0f0f0", padx=10, pady=5)
     frame.pack(fill=tk.BOTH, expand=True)
     
-    # Thêm nút chọn ngôn ngữ đích
+    # Style cho các widget
+    style = {
+        "bg": "#f0f0f0",
+        "fg": "#333333",
+        "font": ("Segoe UI", 10),
+        "relief": "flat",
+        "borderwidth": 0
+    }
+    
+    # Style chung cho tất cả các widget có chiều cao cố định
+    common_height = 28  # Chiều cao cố định cho tất cả các widget
+    
+    button_style = {
+        "bg": "#007AFF",
+        "fg": "white",
+        "font": ("Segoe UI", 10, "bold"),
+        "relief": "flat",
+        "borderwidth": 0,
+        "padx": 15,
+        "height": 1,  # Chiều cao cố định cho button
+        "cursor": "hand2"
+    }
+    
+    # Style cho OptionMenu
+    option_menu_style = {
+        "bg": "#ffffff",
+        "fg": style["fg"],
+        "font": style["font"],
+        "relief": "flat",
+        "borderwidth": 1,
+        "highlightthickness": 1,
+        "highlightbackground": "#cccccc",
+        "width": 12,
+        "height": 1,  # Chiều cao cố định cho dropdown
+        "indicatoron": 0  # Ẩn biểu tượng dropdown arrow
+    }
+    
+    # Thêm nút chọn ngôn ngữ đích với style mới
     target_lang_var = tk.StringVar(value=lang_map.get(TARGET_LANG_SELECTION, "Tiếng Anh"))
     def update_target_lang(val):
         global TARGET_LANG_SELECTION
-        # Tìm mã ngôn ngữ từ tên hiển thị
         lang_code = next((code for code, name in lang_map.items() if name == val), TARGET_LANG_SELECTION)
         TARGET_LANG_SELECTION = lang_code
         hwnd = get_correct_telegram_hwnd()
@@ -166,35 +203,96 @@ def create_sam_mini_chat():
             hwnd_target_lang[hwnd] = lang_code
         print(f"Consolog: Cập nhật ngôn ngữ đích cho Sam Mini Chat: {TARGET_LANG_SELECTION}")
     
-    # Tạo danh sách tên ngôn ngữ đầy đủ cho menu từ config
+    # Dropdown menu cho ngôn ngữ
     lang_display_names = [lang_map[lang] for lang in all_lang_options if lang in lang_map]
     target_lang_menu = tk.OptionMenu(frame, target_lang_var, *lang_display_names, command=update_target_lang)
-    target_lang_menu.config(width=10)  # Giảm width để chỉ hiển thị tên ngôn ngữ
-
-    # Thêm nút chọn API
+    target_lang_menu.config(**option_menu_style)
+    target_lang_menu.grid(row=0, column=1, padx=5, pady=5, sticky="e")
+    
+    # Thêm nút chọn API với style mới
     api_var = tk.StringVar(value=SELECTED_API)
     def update_api(val):
         global SELECTED_API
         SELECTED_API = val
         print(f"Consolog: Cập nhật API cho Sam Mini Chat: {SELECTED_API}")
     
+    # Dropdown menu cho API
     api_menu = tk.OptionMenu(frame, api_var, *["XAI", "ChatGPT", "LLM"], command=update_api)
-    api_menu.config(width=6)
+    api_menu_style = option_menu_style.copy()
+    api_menu_style["width"] = 8  # Điều chỉnh width cho API menu
+    api_menu.config(**api_menu_style)
+    api_menu.grid(row=0, column=2, padx=5, pady=5, sticky="e")
     
-    sam_mini_chat_entry = tk.Entry(frame)
-    sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=2, pady=5)
+    # Text widget thay thế cho Entry
+    sam_mini_chat_entry = tk.Text(
+        frame,
+        font=style["font"],
+        relief="flat",
+        borderwidth=1,
+        highlightthickness=1,
+        highlightbackground="#cccccc",
+        highlightcolor="#007AFF",
+        height=1,  # Chiều cao ban đầu
+        wrap=tk.WORD,  # Tự động xuống dòng
+        padx=5,
+        pady=2
+    )
+    sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=5, pady=5)
     frame.columnconfigure(0, weight=1)
-    sam_mini_chat_entry.bind("<Return>", lambda event: send_sam_mini_chat_message())
     
-    # Đặt các nút chọn ngôn ngữ và API bên phải ô input
-    target_lang_menu.grid(row=0, column=1, padx=2, pady=5, sticky="e")
-    api_menu.grid(row=0, column=2, padx=2, pady=5, sticky="e")
+    # Hàm xử lý khi nhấn Enter
+    def on_enter(event):
+        if not event.state & 0x1:  # Không phải Shift+Enter
+            send_sam_mini_chat_message()
+            return "break"  # Ngăn không cho xuống dòng
     
-    sam_mini_chat_btn_send = tk.Button(frame, text="Send", command=send_sam_mini_chat_message, width=8)
-    sam_mini_chat_btn_send.grid(row=0, column=3, padx=2, sticky="e")
+    # Hàm xử lý khi nhấn Shift+Enter
+    def on_shift_enter(event):
+        if event.state & 0x1:  # Shift+Enter
+            sam_mini_chat_entry.insert(tk.INSERT, "\n")
+            return "break"
     
-    btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
-    btn_quit.grid(row=0, column=4, padx=2, sticky="e")
+    sam_mini_chat_entry.bind("<Return>", on_enter)
+    sam_mini_chat_entry.bind("<Shift-Return>", on_shift_enter)
+    
+    # Hàm để lấy nội dung từ Text widget
+    def get_text_content():
+        return sam_mini_chat_entry.get("1.0", tk.END).strip()
+    
+    # Hàm để xóa nội dung Text widget
+    def clear_text_content():
+        sam_mini_chat_entry.delete("1.0", tk.END)
+    
+    # Nút Send với style mới
+    sam_mini_chat_btn_send = tk.Button(
+        frame,
+        text="Send",
+        command=send_sam_mini_chat_message,
+        **button_style
+    )
+    sam_mini_chat_btn_send.grid(row=0, column=3, padx=5, pady=5, sticky="e")
+    
+    # Nút Quit với style mới
+    btn_quit = tk.Button(
+        frame,
+        text="Quit",
+        command=destroy_sam_mini_chat,
+        bg="#FF3B30",
+        **{k: v for k, v in button_style.items() if k != "bg"}
+    )
+    btn_quit.grid(row=0, column=4, padx=5, pady=5, sticky="e")
+    
+    # Thêm hover effect cho các nút
+    def on_enter(e):
+        e.widget['background'] = '#0056b3' if e.widget['text'] == 'Send' else '#cc2f26'
+    
+    def on_leave(e):
+        e.widget['background'] = '#007AFF' if e.widget['text'] == 'Send' else '#FF3B30'
+    
+    sam_mini_chat_btn_send.bind("<Enter>", on_enter)
+    sam_mini_chat_btn_send.bind("<Leave>", on_leave)
+    btn_quit.bind("<Enter>", on_enter)
+    btn_quit.bind("<Leave>", on_leave)
 
     # Thêm khả năng di chuyển cửa sổ bằng cách kéo frame
     def start_move(event):
@@ -212,7 +310,7 @@ def create_sam_mini_chat():
     frame.bind("<B1-Motion>", do_move)
 
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
-    print("Consolog: Đã tạo widget Sam Mini Chat với nút chọn ngôn ngữ đích và API.")
+    print("Consolog: Đã tạo widget Sam Mini Chat với giao diện hiện đại.")
 
 def destroy_sam_mini_chat():
     global sam_mini_chat_win, widget_sam_mini_chat_thread_running
@@ -311,15 +409,15 @@ def send_sam_mini_chat_message():
     if sam_mini_chat_entry is None:
         print("Consolog [LỖI]: sam_mini_chat_entry không tồn tại.")
         return
-    msg = sam_mini_chat_entry.get().strip()
+    msg = sam_mini_chat_entry.get("1.0", tk.END).strip()
     if not msg:
         print("Consolog: Không gửi vì tin nhắn rỗng.")
         return
     original_msg = msg
-    sam_mini_chat_entry.delete(0, tk.END)
+    sam_mini_chat_entry.delete("1.0", tk.END)
     hwnd = get_correct_telegram_hwnd()
     if hwnd is None:
-        sam_mini_chat_entry.insert(0, original_msg)
+        sam_mini_chat_entry.insert("1.0", original_msg)
         print("Consolog [LỖI]: Không tìm thấy Telegram active, khôi phục văn bản gốc.")
         return
     target_lang = hwnd_target_lang.get(hwnd, TARGET_LANG_SELECTION)
@@ -348,8 +446,8 @@ def send_sam_mini_chat_message():
             sam_mini_chat_entry.focus_force()
             print("Consolog: Gửi tin nhắn thành công qua Sam Mini Chat.")
         except Exception as e:
-            root.after(0, lambda: sam_mini_chat_entry.delete(0, tk.END))
-            root.after(0, lambda: sam_mini_chat_entry.insert(0, original_msg))
+            root.after(0, lambda: sam_mini_chat_entry.delete("1.0", tk.END))
+            root.after(0, lambda: sam_mini_chat_entry.insert("1.0", original_msg))
             print(f"Consolog [LỖI]: Widget lỗi (dịch hoặc gửi tin): {e}")
         finally:
             root.after(0, lambda: sam_mini_chat_btn_send.config(text="Send", state=tk.NORMAL))

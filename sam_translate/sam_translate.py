@@ -31,11 +31,20 @@ WIDGET_HEIGHT = 80
 WIDGET_Y_OFFSET = 1
 
 root = None
-DEFAULT_TARGET_LANG = "vi"
+DEFAULT_TARGET_LANG = "en"
 
-MY_LANG_SELECTION = "vi"
-TARGET_LANG_SELECTION = DEFAULT_TARGET_LANG
-SELECTED_API = "XAI"  # API mặc định
+# Lấy cấu hình ngôn ngữ từ config
+language_config = config.get("language_config", {})
+all_lang_options = language_config.get("available_languages", ["en", "vi"])
+lang_map = language_config.get("language_names", {"en": "Tiếng Anh", "vi": "Tiếng Việt"})
+
+print(f"Consolog: Đã tải cấu hình ngôn ngữ từ config.json:")
+print(f"Consolog: - Danh sách ngôn ngữ: {all_lang_options}")
+print(f"Consolog: - Mapping ngôn ngữ: {lang_map}")
+
+MY_LANG_SELECTION = config.get("MY_LANG_SELECTION", "vi")
+TARGET_LANG_SELECTION = config.get("TARGET_LANG_SELECTION", DEFAULT_TARGET_LANG)
+SELECTED_API = config.get("SELECTED_API", "XAI")  # API mặc định
 
 sam_mini_chat_win = None
 sam_mini_chat_entry = None
@@ -51,32 +60,9 @@ firebase_url_var = None
 
 user32 = ctypes.windll.user32
 
-all_lang_options = ["en", "vi", "fr", "es", "de", "zh", "km", "pt", "hi", "bn", "tl", "am", "ar", "id", "yo"]
-
-lang_map = {
-    "en": "tiếng Anh",
-    "vi": "tiếng Việt",
-    "fr": "tiếng Pháp",
-    "es": "tiếng Tây Ban Nha",
-    "de": "tiếng Đức",
-    "zh": "tiếng Trung",
-    "km": "tiếng Khmer",
-    "pt": "tiếng Bồ Đào Nha",
-    "hi": "tiếng Hindi",
-    "bn": "tiếng Bengali",
-    "tl": "tiếng Tagalog",
-    "am": "tiếng Amharic",
-    "ar": "tiếng Ả Rập",
-    "id": "tiếng Indonesia",
-    "yo": "tiếng Yoruba"
-}
-
-print("Consolog: Đã bổ sung ngôn ngữ Yoruba (yo) vào all_lang_options và lang_map.")
-
 def set_root(r):
     global root
     root = r
-    print("Consolog: Đặt root window cho Sam Mini Chat.")
 
 def prompt_for_firebase_url():
     global FIREBASE_URL
@@ -150,18 +136,21 @@ def create_sam_mini_chat():
     frame.pack(fill=tk.BOTH, expand=True)
     
     # Thêm nút chọn ngôn ngữ đích
-    target_lang_var = tk.StringVar(value=TARGET_LANG_SELECTION)
+    target_lang_var = tk.StringVar(value=lang_map.get(TARGET_LANG_SELECTION, "Tiếng Anh"))
     def update_target_lang(val):
         global TARGET_LANG_SELECTION
-        TARGET_LANG_SELECTION = val
+        # Tìm mã ngôn ngữ từ tên hiển thị
+        lang_code = next((code for code, name in lang_map.items() if name == val), TARGET_LANG_SELECTION)
+        TARGET_LANG_SELECTION = lang_code
         hwnd = get_correct_telegram_hwnd()
         if hwnd:
-            hwnd_target_lang[hwnd] = val
+            hwnd_target_lang[hwnd] = lang_code
         print(f"Consolog: Cập nhật ngôn ngữ đích cho Sam Mini Chat: {TARGET_LANG_SELECTION}")
     
-    target_lang_menu = tk.OptionMenu(frame, target_lang_var, *all_lang_options, command=update_target_lang)
-    target_lang_menu.config(width=4)
-    target_lang_menu.grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
+    # Tạo danh sách tên ngôn ngữ đầy đủ cho menu từ config
+    lang_display_names = [lang_map[lang] for lang in all_lang_options if lang in lang_map]
+    target_lang_menu = tk.OptionMenu(frame, target_lang_var, *lang_display_names, command=update_target_lang)
+    target_lang_menu.config(width=15)  # Tăng width để hiển thị đầy đủ tên ngôn ngữ
 
     # Thêm nút chọn API
     api_var = tk.StringVar(value=SELECTED_API)
@@ -172,12 +161,15 @@ def create_sam_mini_chat():
     
     api_menu = tk.OptionMenu(frame, api_var, *["XAI", "ChatGPT", "LLM"], command=update_api)
     api_menu.config(width=6)
-    api_menu.grid(row=0, column=1, padx=2, pady=5, sticky="w")
     
     sam_mini_chat_entry = tk.Entry(frame)
-    sam_mini_chat_entry.grid(row=0, column=2, sticky="we", padx=2, pady=5)
-    frame.columnconfigure(2, weight=1)
+    sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=2, pady=5)
+    frame.columnconfigure(0, weight=1)
     sam_mini_chat_entry.bind("<Return>", lambda event: send_sam_mini_chat_message())
+    
+    # Đặt các nút chọn ngôn ngữ và API bên phải ô input
+    target_lang_menu.grid(row=0, column=1, padx=2, pady=5, sticky="e")
+    api_menu.grid(row=0, column=2, padx=2, pady=5, sticky="e")
     
     sam_mini_chat_btn_send = tk.Button(frame, text="Send", command=send_sam_mini_chat_message, width=8)
     sam_mini_chat_btn_send.grid(row=0, column=3, padx=2, sticky="e")

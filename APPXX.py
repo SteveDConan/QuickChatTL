@@ -19,6 +19,7 @@ except ImportError:
 
 from PIL import Image, ImageChops, ImageTk
 from autoit_module import auto_it_function
+from settings_dialog import open_settings, center_window
 
 # Load cấu hình
 config = load_config()
@@ -136,133 +137,28 @@ def on_closing():
     print("Consolog: Đóng ứng dụng...")
     root.destroy()
 
-# Mở cửa sổ Settings
-def open_settings():
-    print("Consolog: Mở cửa sổ Setting")
-    popup = tk.Toplevel(root)
-    popup.title("Setting - Tùy chỉnh sắp xếp & API Keys")
-    center_window(popup, 550, 450)
-
-    lbl_info = tk.Label(popup, text="Nhập kích thước cửa sổ sắp xếp:\nx = (số cột) × Custom Width, y = (số hàng) × Custom Height", wraplength=530)
-    lbl_info.pack(pady=10)
-
-    frame_entries = tk.Frame(popup)
-    frame_entries.pack(pady=5)
-    tk.Label(frame_entries, text="Custom Width:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    entry_width = tk.Entry(frame_entries, width=10)
-    entry_width.insert(0, str(arrange_width))
-    entry_width.grid(row=0, column=1, padx=5, pady=5)
-    tk.Label(frame_entries, text="Custom Height:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    entry_height = tk.Entry(frame_entries, width=10)
-    entry_height.insert(0, str(arrange_height))
-    entry_height.grid(row=1, column=1, padx=5, pady=5)
-
-    tk.Label(popup, text="xAI API Key:").pack(pady=5)
-    xai_key_entry = tk.Entry(popup, width=50)
-    xai_key_entry.insert(0, XAI_API_KEY)
-    xai_key_entry.pack(pady=5)
-
-    tk.Label(popup, text="ChatGPT API Key:").pack(pady=5)
-    chatgpt_key_entry = tk.Entry(popup, width=50)
-    chatgpt_key_entry.insert(0, CHATGPT_API_KEY)
-    chatgpt_key_entry.pack(pady=5)
-
-    tk.Label(popup, text="LLM API Key:").pack(pady=5)
-    llm_key_entry = tk.Entry(popup, width=50)
-    llm_key_entry.insert(0, LLM_API_KEY)
-    llm_key_entry.pack(pady=5)
-
-    def save_settings():
-        global arrange_width, arrange_height, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
-        try:
-            arrange_width = int(entry_width.get())
-            arrange_height = int(entry_height.get())
-            config["arrange_width"] = arrange_width
-            config["arrange_height"] = arrange_height
-
-            XAI_API_KEY = xai_key_entry.get().strip()
-            CHATGPT_API_KEY = chatgpt_key_entry.get().strip()
-            LLM_API_KEY = llm_key_entry.get().strip()
-
-            if not LLM_API_KEY:
-                log_message("LLM API Key không được để trống!")
-                return
-
-            config["xai_api_key"] = XAI_API_KEY
-            config["chatgpt_api_key"] = CHATGPT_API_KEY
-            config["llm_api_key"] = LLM_API_KEY
-            save_config(config)
-            print("Consolog: Đã lưu cấu hình Setting")
-            log_message("Đã lưu cấu hình!")
-            popup.destroy()
-        except Exception as e:
-            log_message(f"Giá trị không hợp lệ: {e}")
-            print(f"Consolog [ERROR]: Lỗi lưu cấu hình Setting: {e}")
-
-    btn_save = tk.Button(popup, text="Save", command=save_settings)
-    btn_save.pack(pady=10)
-    popup.transient(root)
-    popup.grab_set()
-    root.wait_window(popup)
-
-# Căn giữa cửa sổ
-def center_window(win, width, height):
-    win.update_idletasks()
-    screen_width = win.winfo_screenwidth()
-    screen_height = win.winfo_screenheight()
-    x = (screen_width - width) // 2
-    y = (screen_height - height) // 2
-    win.geometry(f"{width}x{height}+{x}+{y}")
-
 # Khởi tạo giao diện chính
 def init_main_ui():
     global root, text_log, telegram_path_entry, DEFAULT_TELEGRAM_PATH, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
     root = tk.Tk()
-    root.title(lang["title"])
-    center_window(root, 650, 800)
-
-    default_font = tkFont.nametofont("TkDefaultFont")
-    default_font.configure(family="Arial Unicode MS", size=10)
-    root.option_add("*Font", default_font)
+    root.withdraw()  # Hide the main window
 
     print("Consolog: Kiểm tra Telegram Path từ màn hình chính thay vì Settings")
-    tk.Label(root, text=lang["title"], font=("Arial Unicode MS", 14, "bold")).pack(pady=10)
-
-    frame_telegram_path = tk.Frame(root)
-    frame_telegram_path.pack(pady=5)
-    tk.Label(frame_telegram_path, text=lang["telegram_path_label"]).pack(side=tk.LEFT, padx=5)
-    telegram_path_entry = tk.Entry(frame_telegram_path, width=50)
-    telegram_path_entry.insert(0, DEFAULT_TELEGRAM_PATH)
-    telegram_path_entry.pack(side=tk.LEFT, padx=5)
-    print("Consolog [ĐÃ CHỈNH SỬA]: Đã ẩn nút Save Telegram Path trên giao diện chính")
-
-    if not telegram_path_entry.get():
+    
+    if not DEFAULT_TELEGRAM_PATH:
         log_message("Đường dẫn Telegram chưa được thiết lập. Vui lòng nhập và lưu!")
         save_telegram_path()
-        if not telegram_path_entry.get():
+        if not DEFAULT_TELEGRAM_PATH:
             log_message("Đường dẫn Telegram là bắt buộc để tiếp tục!")
             return
 
     print("Consolog: Kiểm tra API Keys")
     if not XAI_API_KEY or not CHATGPT_API_KEY or not LLM_API_KEY:
         log_message("API Key chưa được thiết lập. Vui lòng nhập trong Settings!")
-        open_settings()
+        open_settings(root)
         if not XAI_API_KEY or not CHATGPT_API_KEY or not LLM_API_KEY:
             log_message("API Key là bắt buộc để tiếp tục!")
             return
-
-    frame_buttons = tk.Frame(root)
-    frame_buttons.pack(pady=5)
-
-    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=0, padx=5, pady=5)
-
-    frame_log = tk.Frame(root)
-    frame_log.pack(pady=10)
-    tk.Label(frame_log, text=lang["log_label"]).pack()
-    text_log = tk.Text(frame_log, width=70, height=10)
-    text_log.pack()
-
-    root.protocol("WM_DELETE_WINDOW", on_closing)
 
     try:
         set_root(root)

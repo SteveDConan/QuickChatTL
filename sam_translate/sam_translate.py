@@ -10,6 +10,7 @@ import ctypes
 from ctypes import wintypes
 from config import load_config
 import re
+from settings_dialog import open_settings
 
 try:
     import psutil
@@ -26,7 +27,7 @@ print(f"Consolog: Đã tải API keys từ config.json: XAI={XAI_API_KEY[:8] if 
 print(f"Consolog: Đã tải FIREBASE_URL từ config.json: {FIREBASE_URL if FIREBASE_URL else 'Không có, sẽ yêu cầu người dùng nhập.'}")
 
 # Biến cấu hình kích thước cho Sam Mini Chat
-WIDGET_HEIGHT = 40
+WIDGET_HEIGHT = 80
 WIDGET_Y_OFFSET = 1
 
 root = None
@@ -186,6 +187,10 @@ def create_sam_mini_chat():
     btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
     btn_quit.grid(row=0, column=4, padx=2, sticky="e")
 
+    # Add settings button with gear icon (Unicode)
+    btn_settings = tk.Button(frame, text="\u2699", command=open_settings_dialog, width=3)
+    btn_settings.grid(row=0, column=5, padx=2, sticky="e")
+
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
     print("Consolog: Đã tạo widget Sam Mini Chat với nút chọn ngôn ngữ đích và API.")
 
@@ -201,6 +206,15 @@ def destroy_sam_mini_chat():
         except tk.TclError:
             sam_mini_chat_win = None
             sam_mini_chat_entry = None
+    
+    # Đóng hoàn toàn ứng dụng
+    if root is not None:
+        try:
+            root.quit()
+            root.destroy()
+        except tk.TclError:
+            pass
+    print("Consolog: Đã đóng hoàn toàn ứng dụng.")
 
 def update_sam_mini_chat_position():
     global sam_mini_chat_win, widget_sam_mini_chat_thread_running
@@ -509,3 +523,7 @@ def fetch_ngrok_url():
     except Exception as e:
         print(f"Consolog [LỖI]: Lỗi lấy ngrok URL: {e}")
         return None
+
+def open_settings_dialog():
+    print("Consolog: Settings button clicked (Sam Mini Chat)")
+    open_settings(root)

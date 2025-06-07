@@ -1,9 +1,5 @@
 import os
 import time
-import shutil
-import subprocess
-import math
-import ctypes
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -13,11 +9,8 @@ import requests
 from packaging import version
 from sam_translate.sam_translate import set_root, set_sam_mini_chat_globals, create_sam_mini_chat
 from config import load_config, save_config
-
-try:
-    from send2trash import send2trash
-except ImportError:
-    send2trash = None
+import ctypes
+from ctypes import wintypes
 
 try:
     import psutil
@@ -25,7 +18,6 @@ except ImportError:
     psutil = None
 
 from PIL import Image, ImageChops, ImageTk
-from ctypes import wintypes
 from autoit_module import auto_it_function
 
 # Load cấu hình
@@ -222,50 +214,6 @@ def center_window(win, width, height):
     y = (screen_height - height) // 2
     win.geometry(f"{width}x{height}+{x}+{y}")
 
-# Hiển thị splash screen
-def show_splash_screen():
-    splash = tk.Tk()
-    splash.overrideredirect(True)
-    width = 400
-    height = 200
-    screen_width = splash.winfo_screenwidth()
-    screen_height = splash.winfo_screenheight()
-    x = (screen_width - width) // 2
-    y = (screen_height - height) // 2
-    splash.geometry(f"{width}x{height}+{x}+{y}")
-    
-    tk.Label(splash, text="Loading, please wait...", font=("Arial Unicode MS", 12)).pack(pady=20)
-    progress_var = tk.DoubleVar(value=0)
-    progress_bar = ttk.Progressbar(splash, variable=progress_var, maximum=100, length=300)
-    progress_bar.pack(pady=20)
-    percent_label = tk.Label(splash, text="0%", font=("Arial Unicode MS", 10))
-    percent_label.pack(pady=10)
-    
-    print("Consolog: Splash screen hiển thị.")
-    threading.Thread(target=lambda: load_tool(splash, progress_var, percent_label), daemon=True).start()
-    splash.mainloop()
-
-# Load tool trong splash screen
-def load_tool(splash, progress_var, percent_label):
-    start_time = time.time()
-    print("Consolog: Bắt đầu load tool...")
-    steps = ["Kiểm tra cấu hình", "Tải dữ liệu", "Khởi tạo giao diện"]
-    for i, step in enumerate(steps):
-        print(f"Consolog: Đang thực hiện: {step}")
-        time.sleep(1.67)
-        progress = (i + 1) / len(steps) * 100
-        splash.after(0, lambda p=progress: progress_var.set(p))
-        splash.after(0, lambda p=progress: percent_label.config(text=f"{int(p)}%"))
-    end_time = time.time()
-    print(f"Consolog: Tool đã load xong sau {end_time - start_time:.2f} giây.")
-    splash.after(0, lambda: finish_splash(splash))
-
-# Kết thúc splash screen
-def finish_splash(splash):
-    splash.destroy()
-    print("Consolog: Splash screen kết thúc, khởi tạo giao diện chính.")
-    init_main_ui()
-
 # Khởi tạo giao diện chính
 def init_main_ui():
     global root, text_log, telegram_path_entry, DEFAULT_TELEGRAM_PATH, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
@@ -327,5 +275,5 @@ def init_main_ui():
     root.mainloop()
 
 # Khởi chạy ứng dụng
-print("Consolog: Ứng dụng khởi chạy, hiển thị splash screen.")
-show_splash_screen()
+print("Consolog: Ứng dụng khởi chạy.")
+init_main_ui()

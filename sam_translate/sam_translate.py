@@ -26,7 +26,7 @@ print(f"Consolog: Đã tải API keys từ config.json: XAI={XAI_API_KEY[:8] if 
 print(f"Consolog: Đã tải FIREBASE_URL từ config.json: {FIREBASE_URL if FIREBASE_URL else 'Không có, sẽ yêu cầu người dùng nhập.'}")
 
 # Biến cấu hình kích thước cho Sam Mini Chat
-WIDGET_HEIGHT = 32
+WIDGET_HEIGHT = 40
 WIDGET_Y_OFFSET = 1
 
 root = None

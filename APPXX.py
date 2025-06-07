@@ -113,104 +113,65 @@ def capture_window(hwnd):
 # Từ điển ngôn ngữ
 languages = {
     "vi": {
-        "title": "Công cụ Tự động Telegram TData",
-        "choose_folder": "Chọn thư mục",
-        "save_path": "💾 Lưu đường dẫn",
+        "title": "Công cụ Tự động Telegram",
         "setting": "⚙️ Setting",
-        "copy_telegram": "📋 Copy Telegram Portable",
-        "open_telegram": "🟢 Mở Telegram Copies",
         "close_telegram": "❌ Đóng All Telegram",
         "arrange_telegram": "🟣 Sắp xếp Telegram",
         "check_update": "🔄 Check for Updates",
-        "stats_label": "Bảng thống kê thư mục con:",
-        "account_summary": "Thống kê tài khoản:",
-        "logged_accounts": "Tài khoản đã đăng nhập:",
         "log_label": "Tiến trình:",
         "telegram_path_label": "Đường dẫn Telegram:",
         "lang_select_title": "Chọn ngôn ngữ",
         "lang_vi": "Tiếng Việt",
         "lang_en": "English",
         "lang_zh": "中文",
-        "msg_saved_path": "Đã lưu đường dẫn vào máy!",
         "msg_error_path": "Đường dẫn không hợp lệ!",
-        "msg_copy_result": "Kết quả Copy",
-        "msg_open_result": "Kết quả mở Telegram",
-        "copy_success": "Copy telegram.exe thành công cho {phone}",
-        "copy_skip": "{phone} đã có telegram.exe, bỏ qua.",
         "close_result": "Đóng All Telegram:\nĐã đóng: {closed}\nLỗi: {errors}",
         "arrange_result": "Đã sắp xếp {count} cửa sổ Telegram.",
         "update_available": "Phiên bản {version} có sẵn. Bạn có muốn cập nhật không?",
         "no_updates": "Bạn đã có phiên bản mới nhất.",
         "update_error": "Lỗi kiểm tra cập nhật.",
-        "invalid_source_exe": "Source telegram.exe không hợp lệ!",
         "close_result_title": "Kết quả đóng",
         "save_telegram_path": "💾 Lưu Telegram Path"
     },
     "en": {
-        "title": "Telegram TData Auto Tool",
-        "choose_folder": "Choose Folder",
-        "save_path": "💾 Save Path",
+        "title": "Telegram Auto Tool",
         "setting": "⚙️ Setting",
-        "copy_telegram": "📋 Copy Telegram Portable",
-        "open_telegram": "🟢 Open Telegram Copies",
         "close_telegram": "❌ Close All Telegram",
         "arrange_telegram": "🟣 Arrange Telegram",
         "check_update": "🔄 Check for Updates",
-        "stats_label": "Folder Statistics:",
-        "account_summary": "Account Summary:",
-        "logged_accounts": "Logged In Accounts:",
         "log_label": "Log:",
         "telegram_path_label": "Telegram Path:",
         "lang_select_title": "Select Language",
         "lang_vi": "Tiếng Việt",
         "lang_en": "English",
         "lang_zh": "中文",
-        "msg_saved_path": "Path saved successfully!",
         "msg_error_path": "Invalid path!",
-        "msg_copy_result": "Copy Result",
-        "msg_open_result": "Telegram Open Result",
-        "copy_success": "Copied telegram.exe successfully for {phone}",
-        "copy_skip": "{phone} already has telegram.exe, skipped.",
         "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
         "arrange_result": "Arranged {count} Telegram windows.",
         "update_available": "Version {version} is available. Do you want to update?",
         "no_updates": "You already have the latest version.",
         "update_error": "Error checking for updates.",
-        "invalid_source_exe": "Invalid source telegram.exe!",
         "close_result_title": "Close Result",
         "save_telegram_path": "💾 Save Telegram Path"
     },
     "zh": {
-        "title": "Telegram TData 自动工具",
-        "choose_folder": "选择文件夹",
-        "save_path": "💾 保存路径",
+        "title": "Telegram 自动工具",
         "setting": "⚙️ Setting",
-        "copy_telegram": "📋 复制 Telegram Portable",
-        "open_telegram": "🟢 打开 Telegram 副本",
         "close_telegram": "❌ 关闭所有 Telegram",
         "arrange_telegram": "🟣 排列 Telegram",
         "check_update": "🔄 检查更新",
-        "stats_label": "Folder Statistics:",
-        "account_summary": "Account Summary:",
-        "logged_accounts": "Logged In Accounts:",
         "log_label": "Log:",
         "telegram_path_label": "Telegram Path:",
         "lang_select_title": "Select Language",
         "lang_vi": "Tiếng Việt",
         "lang_en": "English",
         "lang_zh": "中文",
-        "msg_saved_path": "Path saved successfully!",
         "msg_error_path": "Invalid path!",
-        "msg_copy_result": "Copy Result",
-        "msg_open_result": "Telegram Open Result",
-        "copy_success": "Copied telegram.exe successfully for {phone}",
-        "copy_skip": "{phone} already has telegram.exe, skipped.",
         "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
         "arrange_result": "Arranged {count} Telegram windows.",
         "update_available": "Version {version} is available. Do you want to update?",
         "no_updates": "You already have the latest version.",
         "update_error": "Error checking for updates.",
-        "invalid_source_exe": "Invalid source telegram.exe!",
         "close_result_title": "Close Result",
         "save_telegram_path": "💾 Save Telegram Path"
     }
@@ -491,18 +452,6 @@ def log_message(msg):
     text_log.see(tk.END)
     print(f"[LOG] {msg}")
 
-# Lưu đường dẫn thư mục
-def save_path():
-    folder_path = entry_path.get()
-    print(f"Consolog: Lưu đường dẫn: {folder_path}")
-    if os.path.exists(folder_path):
-        config["folder_path"] = folder_path
-        save_config(config)
-        log_message(lang["msg_saved_path"])
-        update_stats()
-    else:
-        log_message(lang["msg_error_path"])
-
 # Lưu đường dẫn Telegram
 def save_telegram_path():
     global DEFAULT_TELEGRAM_PATH
@@ -516,171 +465,10 @@ def save_telegram_path():
     else:
         log_message("Đường dẫn Telegram không hợp lệ!")
 
-# Tải đường dẫn đã lưu
-def load_path():
-    path = config.get("folder_path", "")
-    print(f"Consolog: Đường dẫn tải được: {path}")
-    return path
-
-# Chọn thư mục
-def browse_folder():
-    folder_selected = filedialog.askdirectory()
-    print(f"Consolog: Người dùng chọn folder: {folder_selected}")
-    entry_path.delete(0, tk.END)
-    entry_path.insert(0, folder_selected)
-
-# Cập nhật thống kê thư mục
-def update_stats():
-    folder_path = entry_path.get()
-    if not os.path.exists(folder_path):
-        return
-    try:
-        subfolders = [d for d in os.listdir(folder_path) if os.path.isdir(os.path.join(folder_path, d))]
-    except Exception as e:
-        log_message(f"Không thể đọc thư mục: {e}")
-        return
-    info_list = []
-    for sub in subfolders:
-        sub_path = os.path.join(folder_path, sub)
-        tdata_count = sum(
-            1 for item in os.listdir(sub_path)
-            if item.lower() == 'tdata' and os.path.isdir(os.path.join(sub_path, item))
-        )
-        info_list.append(f"- {sub}: có {tdata_count} tdata folder(s)")
-    info_text = "\n".join(info_list) if info_list else "Không có thư mục con nào."
-    text_stats.delete("1.0", tk.END)
-    text_stats.insert(tk.END, info_text)
-    print("Consolog: Cập nhật stats thành công.")
-
-# Lấy danh sách thư mục TData
-def get_tdata_folders(main_dir):
-    if not os.path.exists(main_dir):
-        return []
-    folders = [
-        os.path.join(main_dir, f) for f in os.listdir(main_dir)
-        if os.path.isdir(os.path.join(main_dir, f))
-    ]
-    print(f"Consolog: Tìm thấy {len(folders)} thư mục TData trong {main_dir}")
-    return folders
-
-# Mở Telegram với TData
-def open_telegram_with_tdata(tdata_folder):
-    telegram_exe = os.path.join(tdata_folder, "telegram.exe")
-    tdata_sub = os.path.join(tdata_folder, "tdata")
-    print(f"Consolog: Mở telegram từ folder: {tdata_folder}")
-    if not os.path.exists(telegram_exe):
-        log_message(f"Không tìm thấy telegram.exe tại {telegram_exe}")
-        return None
-    if not os.path.exists(tdata_sub):
-        log_message(f"Không tìm thấy thư mục tdata tại {tdata_sub}")
-        return None
-    log_message(f"🟢 Đang mở {telegram_exe} (cwd={tdata_folder})")
-    proc = subprocess.Popen([telegram_exe], cwd=tdata_folder)
-    time.sleep(0.25)
-    return proc
-
 # Đóng ứng dụng
 def on_closing():
     print("Consolog: Đóng ứng dụng...")
     root.destroy()
-
-# Mở các bản sao Telegram
-def open_telegram_copies():
-    def worker():
-        results = []
-        tdata_dir = entry_path.get()
-        if not os.path.exists(tdata_dir):
-            root.after(0, lambda: log_message(lang["msg_error_path"]))
-            return
-        tdata_folders = get_tdata_folders(tdata_dir)
-        for folder in tdata_folders:
-            exe_path = os.path.join(folder, "telegram.exe")
-            if os.path.exists(exe_path):
-                try:
-                    subprocess.Popen([exe_path])
-                    results.append(f"Mở thành công: {folder}")
-                except Exception as e:
-                    results.append(f"Lỗi mở {folder}: {e}")
-            else:
-                results.append(f"Không tìm thấy exe: {folder}")
-            time.sleep(0.25)
-        root.after(0, lambda: log_message("\n".join(results)))
-        time.sleep(0.25)
-        root.after(0, lambda: arrange_telegram_windows(arrange_width, arrange_height))
-    threading.Thread(target=worker, daemon=True).start()
-
-# Copy Telegram Portable
-def copy_telegram_portable():
-    print("Consolog: Đang copy telegram.exe cho các tài khoản...")
-    tdata_dir = entry_path.get()
-    if not os.path.exists(tdata_dir):
-        log_message(lang["msg_error_path"])
-        return
-    tdata_folders = get_tdata_folders(tdata_dir)
-    results = []
-    copied = []
-    skipped = []
-    errors = []
-
-    source_exe = telegram_path_entry.get()
-    if not os.path.isfile(source_exe):
-        log_message(lang["invalid_source_exe"])
-        return
-
-    for folder in tdata_folders:
-        target_path = os.path.join(folder, "telegram.exe")
-        phone = os.path.basename(folder)
-        if not os.path.exists(target_path):
-            try:
-                shutil.copy(source_exe, target_path)
-                copied.append(phone)
-                log_message(f"Consolog: {lang['copy_success'].format(phone=phone)}")
-            except Exception as e:
-                errors.append(f"{phone}: {str(e)}")
-                log_message(f"Consolog [ERROR]: Lỗi copy telegram.exe cho {phone}: {e}")
-        else:
-            skipped.append(phone)
-            log_message(lang["copy_skip"].format(phone=phone))
-
-    summary = f"Đã copy: {len(copied)}\nBỏ qua: {len(skipped)}\nLỗi: {len(errors)}\n"
-    if copied:
-        summary += "Đã copy: " + ", ".join(copied) + "\n"
-    if skipped:
-        summary += "Bỏ qua: " + ", ".join(skipped) + "\n"
-    if errors:
-        summary += "Lỗi: " + "; ".join(errors)
-
-    log_message(summary)
-    print("Consolog: Hoàn thành copy telegram.exe.")
-
-# Đóng tất cả Telegram
-def close_all_telegram():
-    print("Consolog: Đang đóng tất cả tiến trình Telegram...")
-    try:
-        result = subprocess.run(["tasklist", "/FI", "IMAGENAME eq Telegram.exe", "/FO", "CSV"], capture_output=True, text=True)
-        output = result.stdout.strip().splitlines()
-        pids = []
-        for line in output[1:]:
-            parts = line.replace('"','').split(',')
-            if len(parts) >= 2:
-                pids.append(parts[1])
-        closed = []
-        errors = []
-        for pid in pids:
-            try:
-                subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True, text=True)
-                closed.append(pid)
-                time.sleep(0.25)
-            except Exception as e:
-                errors.append(f"PID {pid}: {e}")
-        summary = lang["close_result"].format(
-            closed=", ".join(closed) if closed else "None",
-            errors="; ".join(errors) if errors else "None"
-        )
-        log_message(summary)
-        print("Consolog: Đóng tiến trình Telegram hoàn tất.")
-    except Exception as e:
-        log_message(f"Không thể đóng các tiến trình Telegram: {e}")
 
 # Mở cửa sổ Settings
 def open_settings():
@@ -874,7 +662,7 @@ def finish_splash(splash):
 
 # Khởi tạo giao diện chính
 def init_main_ui():
-    global root, entry_path, text_stats, text_log, telegram_path_entry, DEFAULT_TELEGRAM_PATH, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
+    global root, text_log, telegram_path_entry, DEFAULT_TELEGRAM_PATH, XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
     root = tk.Tk()
     root.title(lang["title"])
     center_window(root, 650, 800)
@@ -887,12 +675,6 @@ def init_main_ui():
 
     print("Consolog: Kiểm tra Telegram Path từ màn hình chính thay vì Settings")
     tk.Label(root, text=lang["title"], font=("Arial Unicode MS", 14, "bold")).pack(pady=10)
-
-    frame_path = tk.Frame(root)
-    frame_path.pack(pady=5)
-    entry_path = tk.Entry(frame_path, width=50)
-    entry_path.pack(side=tk.LEFT, padx=5)
-    tk.Button(frame_path, text=lang["choose_folder"], command=browse_folder).pack(side=tk.LEFT)
 
     frame_telegram_path = tk.Frame(root)
     frame_telegram_path.pack(pady=5)
@@ -917,35 +699,19 @@ def init_main_ui():
             log_message("API Key là bắt buộc để tiếp tục!")
             return
 
-    tk.Button(root, text=lang["save_path"], command=save_path, width=20).pack(pady=5)
-
     frame_buttons = tk.Frame(root)
     frame_buttons.pack(pady=5)
 
-    tk.Button(frame_buttons, text=lang["copy_telegram"], command=copy_telegram_portable, width=18).grid(row=0, column=0, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["open_telegram"], command=open_telegram_copies, width=18).grid(row=0, column=1, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["close_telegram"], command=close_all_telegram_threaded, width=18).grid(row=0, column=2, padx=5, pady=5)
-
-    tk.Button(frame_buttons, text=lang["arrange_telegram"], command=lambda: arrange_telegram_windows(arrange_width, arrange_height), width=18).grid(row=1, column=0, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=1, column=1, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["check_update"], command=check_for_updates, width=18).grid(row=1, column=2, padx=5, pady=5)
-
-    frame_stats = tk.Frame(root)
-    frame_stats.pack(pady=10)
-    tk.Label(frame_stats, text=lang["stats_label"]).pack()
-    text_stats = tk.Text(frame_stats, width=70, height=10)
-    text_stats.pack()
+    tk.Button(frame_buttons, text=lang["close_telegram"], command=close_all_telegram_threaded, width=18).grid(row=0, column=0, padx=5, pady=5)
+    tk.Button(frame_buttons, text=lang["arrange_telegram"], command=lambda: arrange_telegram_windows(arrange_width, arrange_height), width=18).grid(row=0, column=1, padx=5, pady=5)
+    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=2, padx=5, pady=5)
+    tk.Button(frame_buttons, text=lang["check_update"], command=check_for_updates, width=18).grid(row=1, column=1, padx=5, pady=5)
 
     frame_log = tk.Frame(root)
     frame_log.pack(pady=10)
     tk.Label(frame_log, text=lang["log_label"]).pack()
     text_log = tk.Text(frame_log, width=70, height=10)
     text_log.pack()
-
-    saved_path = load_path()
-    if saved_path:
-        entry_path.insert(0, saved_path)
-        update_stats()
 
     tk.Label(root, text=VERSION_INFO, font=("Arial Unicode MS", 8)).pack(side="bottom", fill="x", pady=5)
     root.protocol("WM_DELETE_WINDOW", on_closing)

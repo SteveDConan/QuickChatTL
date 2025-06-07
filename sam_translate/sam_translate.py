@@ -724,22 +724,49 @@ def create_sam_mini_chat():
     sam_mini_chat_win.title("Sam Mini Chat")
     sam_mini_chat_win.overrideredirect(True)
     sam_mini_chat_win.attributes("-topmost", False)
-    sam_mini_chat_win.geometry(f"400x{WIDGET_HEIGHT}+0+0")
+    sam_mini_chat_win.geometry(f"600x{WIDGET_HEIGHT}+0+0")  # Tăng chiều rộng để chứa thêm nút API
     sam_mini_chat_win.withdraw()
     frame = tk.Frame(sam_mini_chat_win)
     frame.pack(fill=tk.BOTH, expand=True)
-    sam_mini_chat_entry = tk.Entry(frame)
-    sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=(5, 2), pady=5)
-    frame.columnconfigure(0, weight=1)
-    sam_mini_chat_entry.bind("<Return>", lambda event: send_sam_mini_chat_message())
-    sam_mini_chat_btn_send = tk.Button(frame, text="Send", command=send_sam_mini_chat_message, width=8)
-    sam_mini_chat_btn_send.grid(row=0, column=1, padx=2, sticky="e")
-    btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
-    btn_quit.grid(row=0, column=2, padx=2, sticky="e")
+    
+    # Thêm nút chọn ngôn ngữ đích
+    target_lang_var = tk.StringVar(value=TARGET_LANG_SELECTION)
+    def update_target_lang(val):
+        global TARGET_LANG_SELECTION
+        TARGET_LANG_SELECTION = val
+        hwnd = get_correct_telegram_hwnd()
+        if hwnd:
+            hwnd_target_lang[hwnd] = val
+        print(f"Consolog: Cập nhật ngôn ngữ đích cho Sam Mini Chat: {TARGET_LANG_SELECTION}")
+    
+    target_lang_menu = tk.OptionMenu(frame, target_lang_var, *all_lang_options, command=update_target_lang)
+    target_lang_menu.config(width=4)  # Giảm chiều rộng của menu
+    target_lang_menu.grid(row=0, column=0, padx=(5, 2), pady=5, sticky="w")
 
-    create_sam_translate()
+    # Thêm nút chọn API
+    api_var = tk.StringVar(value=SELECTED_API)
+    def update_api(val):
+        global SELECTED_API
+        SELECTED_API = val
+        print(f"Consolog: Cập nhật API cho Sam Mini Chat: {SELECTED_API}")
+    
+    api_menu = tk.OptionMenu(frame, api_var, *["XAI", "ChatGPT", "LLM"], command=update_api)
+    api_menu.config(width=6)  # Đặt chiều rộng cho menu API
+    api_menu.grid(row=0, column=1, padx=2, pady=5, sticky="w")
+    
+    sam_mini_chat_entry = tk.Entry(frame)
+    sam_mini_chat_entry.grid(row=0, column=2, sticky="we", padx=2, pady=5)
+    frame.columnconfigure(2, weight=1)
+    sam_mini_chat_entry.bind("<Return>", lambda event: send_sam_mini_chat_message())
+    
+    sam_mini_chat_btn_send = tk.Button(frame, text="Send", command=send_sam_mini_chat_message, width=8)
+    sam_mini_chat_btn_send.grid(row=0, column=3, padx=2, sticky="e")
+    
+    btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
+    btn_quit.grid(row=0, column=4, padx=2, sticky="e")
+
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
-    print("Consolog: Đã tạo widget Sam Mini Chat với nút Send riêng biệt.")
+    print("Consolog: Đã tạo widget Sam Mini Chat với nút chọn ngôn ngữ đích và API.")
 
 def send_sam_mini_chat_message():
     global sam_mini_chat_entry, sam_mini_chat_btn_send
@@ -793,7 +820,6 @@ def send_sam_mini_chat_message():
 
 def destroy_sam_mini_chat():
     global sam_mini_chat_win, widget_sam_mini_chat_thread_running
-    destroy_sam_translate()
     widget_sam_mini_chat_thread_running = False
     if sam_mini_chat_win is not None:
         try:

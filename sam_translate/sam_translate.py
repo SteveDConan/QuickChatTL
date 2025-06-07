@@ -213,6 +213,62 @@ def create_sam_mini_chat() -> None:
     window_state.sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=5, pady=5)
     frame.columnconfigure(0, weight=1)
     
+    # Add quick reply button
+    quick_reply_text = "Xin chào! Bạn cần chúng tôi giúp đỡ gì không ?"
+    quick_reply_btn = tk.Button(
+        frame,
+        text=quick_reply_text,
+        command=lambda: send_quick_reply(quick_reply_text),
+        bg="#E8F5E9",
+        fg="#2E7D32",
+        font=("Segoe UI", 9),
+        relief="flat",
+        borderwidth=0,
+        padx=10,
+        pady=5,
+        cursor="hand2"
+    )
+    quick_reply_btn.grid(row=1, column=0, columnspan=5, sticky="we", padx=5, pady=(0, 5))
+    
+    # Add second quick reply button
+    quick_reply_text2 = "Vui lòng cung cấp cho tôi Email hoặc Số điện thoại đăng ký của bạn, tôi sẽ kiểm tra trên hệ thống !"
+    quick_reply_btn2 = tk.Button(
+        frame,
+        text=quick_reply_text2,
+        command=lambda: send_quick_reply(quick_reply_text2),
+        bg="#E3F2FD",
+        fg="#1565C0",
+        font=("Segoe UI", 9),
+        relief="flat",
+        borderwidth=0,
+        padx=10,
+        pady=5,
+        cursor="hand2"
+    )
+    quick_reply_btn2.grid(row=2, column=0, columnspan=5, sticky="we", padx=5, pady=(0, 5))
+    
+    def on_quick_reply_enter(e):
+        if e.widget == quick_reply_btn:
+            e.widget['background'] = '#C8E6C9'
+        else:
+            e.widget['background'] = '#BBDEFB'
+    
+    def on_quick_reply_leave(e):
+        if e.widget == quick_reply_btn:
+            e.widget['background'] = '#E8F5E9'
+        else:
+            e.widget['background'] = '#E3F2FD'
+    
+    quick_reply_btn.bind("<Enter>", on_quick_reply_enter)
+    quick_reply_btn.bind("<Leave>", on_quick_reply_leave)
+    quick_reply_btn2.bind("<Enter>", on_quick_reply_enter)
+    quick_reply_btn2.bind("<Leave>", on_quick_reply_leave)
+    
+    def send_quick_reply(text):
+        window_state.sam_mini_chat_entry.delete("1.0", tk.END)
+        window_state.sam_mini_chat_entry.insert("1.0", text)
+        send_sam_mini_chat_message()
+    
     def on_enter(event: tk.Event) -> str:
         if not event.state & 0x1:
             send_sam_mini_chat_message()

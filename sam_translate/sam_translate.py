@@ -10,7 +10,6 @@ import ctypes
 from ctypes import wintypes
 from config import load_config
 import re
-from settings_dialog import open_settings
 
 try:
     import psutil
@@ -177,10 +176,6 @@ def create_sam_mini_chat():
     
     btn_quit = tk.Button(frame, text="Quit", command=destroy_sam_mini_chat, width=8)
     btn_quit.grid(row=0, column=4, padx=2, sticky="e")
-
-    # Add settings button with gear icon (Unicode)
-    btn_settings = tk.Button(frame, text="\u2699", command=open_settings_dialog, width=3)
-    btn_settings.grid(row=0, column=5, padx=2, sticky="e")
 
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
     print("Consolog: Đã tạo widget Sam Mini Chat với nút chọn ngôn ngữ đích và API.")
@@ -514,25 +509,3 @@ def fetch_ngrok_url():
     except Exception as e:
         print(f"Consolog [LỖI]: Lỗi lấy ngrok URL: {e}")
         return None
-
-def open_settings_dialog():
-    print("Consolog: Settings button clicked (Sam Mini Chat)")
-    if root is None:
-        print("Consolog [ERROR]: Root window is None")
-        return
-        
-    config = load_config()
-    
-    def on_settings_saved(new_config):
-        global XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY
-        XAI_API_KEY = new_config.get("xai_api_key", "")
-        CHATGPT_API_KEY = new_config.get("chatgpt_api_key", "")
-        LLM_API_KEY = new_config.get("llm_api_key", "")
-        print(f"Consolog: Đã cập nhật API keys: XAI={XAI_API_KEY[:8] if XAI_API_KEY else None}..., ChatGPT={CHATGPT_API_KEY[:8] if CHATGPT_API_KEY else None}..., LLM={LLM_API_KEY[:8] if LLM_API_KEY else None}...")
-        messagebox.showinfo("Thành công", "Đã cập nhật cài đặt thành công!")
-    
-    try:
-        open_settings(root, callback=on_settings_saved)
-    except Exception as e:
-        print(f"Consolog [ERROR]: Lỗi khi mở dialog settings: {e}")
-        messagebox.showerror("Lỗi", f"Không thể mở cửa sổ cài đặt: {e}")

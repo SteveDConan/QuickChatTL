@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import messagebox
 from sam_translate.sam_translate import set_root, set_sam_mini_chat_globals, create_sam_mini_chat
 from config import load_config
-from settings_dialog import open_settings, center_window
 
 # Load cấu hình
 config = load_config()
@@ -23,15 +22,12 @@ def init_main_ui():
     root = tk.Tk()
     root.title("Telegram Auto")
     root.geometry("800x600")
-    center_window(root, 800, 600)
+    root.eval('tk::PlaceWindow . center')
 
     print("Consolog: Kiểm tra API Keys")
     if not XAI_API_KEY or not CHATGPT_API_KEY or not LLM_API_KEY:
-        messagebox.showerror("Error", "API Key chưa được thiết lập. Vui lòng nhập trong Settings!")
-        open_settings(root)
-        if not XAI_API_KEY or not CHATGPT_API_KEY or not LLM_API_KEY:
-            messagebox.showerror("Error", "API Key là bắt buộc để tiếp tục!")
-            return
+        messagebox.showerror("Error", "API Key chưa được thiết lập. Vui lòng cập nhật trong file config.json!")
+        return
 
     try:
         set_root(root)

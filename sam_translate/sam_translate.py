@@ -133,16 +133,6 @@ def set_sam_mini_chat_globals(xai_api_key, chatgpt_api_key, llm_api_key, default
     print(f"Consolog: Đã thiết lập API keys: XAI={XAI_API_KEY[:8] if XAI_API_KEY else None}..., ChatGPT={CHATGPT_API_KEY[:8] if CHATGPT_API_KEY else None}..., LLM={LLM_API_KEY[:8] if LLM_API_KEY else None}...")
     print(f"Consolog: Load cấu hình từ config.json: MY_LANG={MY_LANG_SELECTION}, TARGET_LANG={TARGET_LANG_SELECTION}, SELECTED_API={SELECTED_API}")
 
-def load_config_local():
-    global MY_LANG_SELECTION, TARGET_LANG_SELECTION, SELECTED_API
-    config = load_config()
-    MY_LANG_SELECTION = config.get('MY_LANG_SELECTION', MY_LANG_SELECTION)
-    TARGET_LANG_SELECTION = config.get('TARGET_LANG_SELECTION', TARGET_LANG_SELECTION)
-    SELECTED_API = config.get('SELECTED_API', SELECTED_API)
-    print(f"Consolog: Load cấu hình từ config.json: MY_LANG={MY_LANG_SELECTION}, TARGET_LANG={TARGET_LANG_SELECTION}, SELECTED_API={SELECTED_API}")
-
-load_config_local()
-
 hwnd_target_lang = {}
 
 def create_sam_mini_chat():

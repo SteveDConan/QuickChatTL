@@ -112,7 +112,6 @@ languages = {
         "title": "Công cụ Tự động Telegram",
         "setting": "⚙️ Setting",
         "close_telegram": "❌ Đóng All Telegram",
-        "arrange_telegram": "🟣 Sắp xếp Telegram",
         "log_label": "Tiến trình:",
         "telegram_path_label": "Đường dẫn Telegram:",
         "lang_select_title": "Chọn ngôn ngữ",
@@ -121,7 +120,6 @@ languages = {
         "lang_zh": "中文",
         "msg_error_path": "Đường dẫn không hợp lệ!",
         "close_result": "Đóng All Telegram:\nĐã đóng: {closed}\nLỗi: {errors}",
-        "arrange_result": "Đã sắp xếp {count} cửa sổ Telegram.",
         "close_result_title": "Kết quả đóng",
         "save_telegram_path": "💾 Lưu Telegram Path"
     },
@@ -129,7 +127,6 @@ languages = {
         "title": "Telegram Auto Tool",
         "setting": "⚙️ Setting",
         "close_telegram": "❌ Close All Telegram",
-        "arrange_telegram": "🟣 Arrange Telegram",
         "log_label": "Log:",
         "telegram_path_label": "Telegram Path:",
         "lang_select_title": "Select Language",
@@ -138,7 +135,6 @@ languages = {
         "lang_zh": "中文",
         "msg_error_path": "Invalid path!",
         "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
-        "arrange_result": "Arranged {count} Telegram windows.",
         "close_result_title": "Close Result",
         "save_telegram_path": "💾 Save Telegram Path"
     },
@@ -146,7 +142,6 @@ languages = {
         "title": "Telegram 自动工具",
         "setting": "⚙️ Setting",
         "close_telegram": "❌ 关闭所有 Telegram",
-        "arrange_telegram": "🟣 排列 Telegram",
         "log_label": "Log:",
         "telegram_path_label": "Telegram Path:",
         "lang_select_title": "Select Language",
@@ -155,7 +150,6 @@ languages = {
         "lang_zh": "中文",
         "msg_error_path": "Invalid path!",
         "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
-        "arrange_result": "Arranged {count} Telegram windows.",
         "close_result_title": "Close Result",
         "save_telegram_path": "💾 Save Telegram Path"
     }
@@ -206,105 +200,6 @@ def auto_close_telegram():
 # Đóng Telegram trong luồng riêng
 def close_all_telegram_threaded():
     threading.Thread(target=auto_close_telegram, daemon=True).start()
-
-# Kiểm tra cập nhật
-def check_for_updates():
-    print("Consolog: Kiểm tra cập nhật phiên bản...")
-    try:
-        url = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/releases/latest"
-        response = requests.get(url)
-        if response.status_code == 200:
-            release_info = response.json()
-            latest_version = release_info["tag_name"].lstrip("v")
-            print(f"Consolog: Phiên bản mới nhất từ GitHub: {latest_version}")
-            if version.parse(latest_version) > version.parse(CURRENT_VERSION):
-                log_message(lang.get("update_available").format(version=latest_version))
-                if messagebox.askyesno("Cập nhật", lang.get("update_available").format(version=latest_version)):
-                    print("Consolog [UPDATE]: Người dùng chọn cập nhật phiên bản mới.")
-                    assets = release_info.get("assets", [])
-                    download_url = None
-                    for asset in assets:
-                        if asset["name"].lower().endswith(".exe"):
-                            download_url = asset["browser_download_url"]
-                            break
-                    if not download_url and assets:
-                        download_url = assets[0]["browser_download_url"]
-                    if download_url:
-                        print(f"Consolog [UPDATE]: Bắt đầu tải file cập nhật từ {download_url}")
-                        download_update_with_progress(download_url)
-                    else:
-                        log_message("Không tìm thấy file cập nhật trên GitHub.")
-                        print("Consolog [UPDATE ERROR]: Không tìm thấy asset cập nhật.")
-                else:
-                    print("Consolog [UPDATE]: Người dùng không cập nhật.")
-            else:
-                log_message(lang.get("no_updates"))
-                print("Consolog: Bạn đang dùng phiên bản mới nhất.")
-        else:
-            log_message(lang.get("update_error"))
-            print("Consolog: Lỗi kiểm tra cập nhật.")
-    except Exception as e:
-        log_message(f"Lỗi kiểm tra cập nhật: {e}")
-        print(f"Consolog [ERROR]: Lỗi kiểm tra cập nhật: {e}")
-
-# Tải cập nhật với thanh tiến trình
-def download_update_with_progress(download_url):
-    local_filename = download_url.split("/")[-1]
-    print(f"Consolog [UPDATE]: Đang tải xuống file: {local_filename}")
-    progress_win = tk.Toplevel(root)
-    progress_win.title("Đang tải cập nhật")
-    progress_win.geometry("550x130")
-
-    style = ttk.Style(progress_win)
-    style.configure("Custom.Horizontal.TProgressbar", troughcolor="white", background="blue", thickness=20)
-
-    tk.Label(progress_win, text=f"Đang tải: {local_filename}").pack(pady=5)
-    progress_var = tk.DoubleVar(value=0)
-    progress_bar = ttk.Progressbar(progress_win, variable=progress_var, maximum=100, length=500, style="Custom.Horizontal.TProgressbar")
-    progress_bar.pack(pady=5)
-    percent_label = tk.Label(progress_win, text="0%")
-    percent_label.pack(pady=5)
-    progress_win.update()
-
-    try:
-        response = requests.get(download_url, stream=True)
-        total_length = response.headers.get('content-length')
-        if total_length is None:
-            log_message("Không xác định được kích thước file cập nhật.")
-            print("Consolog [UPDATE ERROR]: Không xác định được content-length.")
-            progress_win.destroy()
-            return
-        total_length = int(total_length)
-        downloaded = 0
-        with open(local_filename, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    percent = (downloaded / total_length) * 100
-                    progress_var.set(percent)
-                    percent_label.config(text=f"{int(percent)}%")
-                    progress_win.update_idletasks()
-
-        progress_win.destroy()
-        notify_win = tk.Toplevel(root)
-        notify_win.title("Tải cập nhật thành công")
-        tk.Label(notify_win, text=f"Đã tải xong {local_filename}").pack(pady=10)
-
-        def open_update_folder():
-            folder = os.path.abspath(os.getcwd())
-            try:
-                os.startfile(folder)
-            except Exception as e:
-                log_message(f"Lỗi mở thư mục: {e}")
-
-        tk.Button(notify_win, text="Mở vị trí file cập nhật", command=open_update_folder).pack(pady=5)
-        tk.Button(notify_win, text="Close", command=notify_win.destroy).pack(pady=5)
-        print("Consolog [UPDATE]: Tải về cập nhật hoàn tất.")
-    except Exception as e:
-        log_message(f"Failed to download update: {e}")
-        print(f"Consolog [UPDATE ERROR]: Lỗi tải cập nhật: {e}")
-        progress_win.destroy()
 
 # Ghi log
 def log_message(msg):
@@ -408,35 +303,6 @@ def center_window(win, width, height):
     y = (screen_height - height) // 2
     win.geometry(f"{width}x{height}+{x}+{y}")
 
-# Chọn ngôn ngữ
-def select_language():
-    lang_window = tk.Tk()
-    lang_window.title(languages["en"]["lang_select_title"])
-    center_window(lang_window, 400, 200)
-
-    tk.Label(lang_window, text="Select Language / 选择语言 / Chọn ngôn ngữ:", font=("Arial Unicode MS", 12)).pack(pady=10)
-    language_var = tk.StringVar(value="en")
-    for code in ["vi", "en", "zh"]:
-        tk.Radiobutton(
-            lang_window,
-            text=languages[code]["lang_" + code],
-            variable=language_var,
-            value=code,
-            font=("Arial Unicode MS", 10)
-        ).pack(anchor="w", padx=20)
-
-    tk.Button(lang_window, text="OK", command=lambda: set_language(language_var, lang_window), font=("Arial Unicode MS", 10)).pack(pady=10)
-    lang_window.mainloop()
-
-# Thiết lập ngôn ngữ
-def set_language(language_var, window):
-    global lang
-    selected = language_var.get()
-    lang = languages[selected]
-    window.destroy()
-    print("Consolog: Người dùng chọn ngôn ngữ xong, khởi tạo giao diện chính.")
-    init_main_ui()
-
 # Hiển thị splash screen
 def show_splash_screen():
     splash = tk.Tk()
@@ -478,8 +344,10 @@ def load_tool(splash, progress_var, percent_label):
 # Kết thúc splash screen
 def finish_splash(splash):
     splash.destroy()
-    print("Consolog: Splash screen kết thúc, hiển thị giao diện chọn ngôn ngữ.")
-    select_language()
+    print("Consolog: Splash screen kết thúc, khởi tạo giao diện chính.")
+    global lang
+    lang = languages["en"]  # Set default language to English
+    init_main_ui()
 
 # Khởi tạo giao diện chính
 def init_main_ui():
@@ -522,8 +390,7 @@ def init_main_ui():
     frame_buttons.pack(pady=5)
 
     tk.Button(frame_buttons, text=lang["close_telegram"], command=close_all_telegram_threaded, width=18).grid(row=0, column=0, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["arrange_telegram"], command=lambda: arrange_telegram_windows(arrange_width, arrange_height), width=18).grid(row=0, column=1, padx=5, pady=5)
-    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=2, padx=5, pady=5)
+    tk.Button(frame_buttons, text=lang["setting"], command=open_settings, width=18).grid(row=0, column=1, padx=5, pady=5)
 
     frame_log = tk.Frame(root)
     frame_log.pack(pady=10)

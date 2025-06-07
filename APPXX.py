@@ -106,60 +106,22 @@ def capture_window(hwnd):
     user32.ReleaseDC(hwnd, hwindc)
     return image
 
-# Từ điển ngôn ngữ
-languages = {
-    "vi": {
-        "title": "Công cụ Tự động Telegram",
-        "setting": "⚙️ Setting",
-        "close_telegram": "❌ Đóng All Telegram",
-        "log_label": "Tiến trình:",
-        "telegram_path_label": "Đường dẫn Telegram:",
-        "lang_select_title": "Chọn ngôn ngữ",
-        "lang_vi": "Tiếng Việt",
-        "lang_en": "English",
-        "lang_zh": "中文",
-        "msg_error_path": "Đường dẫn không hợp lệ!",
-        "close_result": "Đóng All Telegram:\nĐã đóng: {closed}\nLỗi: {errors}",
-        "close_result_title": "Kết quả đóng",
-        "save_telegram_path": "💾 Lưu Telegram Path"
-    },
-    "en": {
-        "title": "Telegram Auto Tool",
-        "setting": "⚙️ Setting",
-        "close_telegram": "❌ Close All Telegram",
-        "log_label": "Log:",
-        "telegram_path_label": "Telegram Path:",
-        "lang_select_title": "Select Language",
-        "lang_vi": "Tiếng Việt",
-        "lang_en": "English",
-        "lang_zh": "中文",
-        "msg_error_path": "Invalid path!",
-        "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
-        "close_result_title": "Close Result",
-        "save_telegram_path": "💾 Save Telegram Path"
-    },
-    "zh": {
-        "title": "Telegram 自动工具",
-        "setting": "⚙️ Setting",
-        "close_telegram": "❌ 关闭所有 Telegram",
-        "log_label": "Log:",
-        "telegram_path_label": "Telegram Path:",
-        "lang_select_title": "Select Language",
-        "lang_vi": "Tiếng Việt",
-        "lang_en": "English",
-        "lang_zh": "中文",
-        "msg_error_path": "Invalid path!",
-        "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
-        "close_result_title": "Close Result",
-        "save_telegram_path": "💾 Save Telegram Path"
-    }
+# Language dictionary
+lang = {
+    "title": "Telegram Auto Tool",
+    "setting": "⚙️ Setting",
+    "close_telegram": "❌ Close All Telegram",
+    "log_label": "Log:",
+    "telegram_path_label": "Telegram Path:",
+    "msg_error_path": "Invalid path!",
+    "close_result": "Close All Telegram:\nClosed: {closed}\nErrors: {errors}",
+    "close_result_title": "Close Result",
+    "save_telegram_path": "💾 Save Telegram Path"
 }
-
-lang = {}
 
 # Kiểm tra thư viện psutil
 if not psutil:
-    print("Consolog: Cảnh báo - psutil chưa được cài đặt! Vui lòng cài bằng 'pip install psutil' để check live qua PID.")
+    print("Consolog: Warning - psutil is not installed! Please install with 'pip install psutil' to check live via PID.")
 
 # Hàm tự động đóng Telegram
 def auto_close_telegram():
@@ -345,8 +307,6 @@ def load_tool(splash, progress_var, percent_label):
 def finish_splash(splash):
     splash.destroy()
     print("Consolog: Splash screen kết thúc, khởi tạo giao diện chính.")
-    global lang
-    lang = languages["en"]  # Set default language to English
     init_main_ui()
 
 # Khởi tạo giao diện chính

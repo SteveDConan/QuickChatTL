@@ -11,7 +11,7 @@ from tkinter import ttk
 import tkinter.font as tkFont
 import requests
 from packaging import version
-from sam_translate.sam_translate import set_root, set_sam_translate_globals, create_sam_translate, create_sam_mini_chat
+from sam_translate.sam_translate import set_root, set_sam_mini_chat_globals, create_sam_mini_chat
 from config import load_config, save_config
 
 try:
@@ -362,8 +362,7 @@ def init_main_ui():
 
     try:
         set_root(root)
-        set_sam_translate_globals(XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY, TRANSLATION_ONLY, DEFAULT_TARGET_LANG)
-        create_sam_translate()
+        set_sam_mini_chat_globals(XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY, DEFAULT_TARGET_LANG)
         create_sam_mini_chat()
         print("Consolog: Sam Translate và Sam Mini Chat đã được khởi động tự động khi ứng dụng bắt đầu.")
     except Exception as e:

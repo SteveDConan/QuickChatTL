@@ -115,7 +115,7 @@ def prompt_for_firebase_url():
     return FIREBASE_URL
 
 def set_sam_mini_chat_globals(xai_api_key, chatgpt_api_key, llm_api_key, default_lang):
-    global XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY, DEFAULT_TARGET_LANG
+    global XAI_API_KEY, CHATGPT_API_KEY, LLM_API_KEY, DEFAULT_TARGET_LANG, MY_LANG_SELECTION, TARGET_LANG_SELECTION, SELECTED_API
     if xai_api_key and xai_api_key.startswith("xai-"):
         XAI_API_KEY = xai_api_key
     if chatgpt_api_key and chatgpt_api_key.startswith("sk-"):
@@ -123,7 +123,15 @@ def set_sam_mini_chat_globals(xai_api_key, chatgpt_api_key, llm_api_key, default
     if llm_api_key and llm_api_key.startswith("llm-"):
         LLM_API_KEY = llm_api_key
     DEFAULT_TARGET_LANG = default_lang
+    
+    # Load cấu hình từ config
+    config = load_config()
+    MY_LANG_SELECTION = config.get('MY_LANG_SELECTION', MY_LANG_SELECTION)
+    TARGET_LANG_SELECTION = config.get('TARGET_LANG_SELECTION', TARGET_LANG_SELECTION)
+    SELECTED_API = config.get('SELECTED_API', SELECTED_API)
+    
     print(f"Consolog: Đã thiết lập API keys: XAI={XAI_API_KEY[:8] if XAI_API_KEY else None}..., ChatGPT={CHATGPT_API_KEY[:8] if CHATGPT_API_KEY else None}..., LLM={LLM_API_KEY[:8] if LLM_API_KEY else None}...")
+    print(f"Consolog: Load cấu hình từ config.json: MY_LANG={MY_LANG_SELECTION}, TARGET_LANG={TARGET_LANG_SELECTION}, SELECTED_API={SELECTED_API}")
 
 def load_config_local():
     global MY_LANG_SELECTION, TARGET_LANG_SELECTION, SELECTED_API
@@ -374,7 +382,7 @@ class WINDOWPLACEMENT(ctypes.Structure):
 def remove_think_tags(text):
     return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
 
-def translate_text_for_dialogue_xai(text, source_lang="auto", target_lang="vi", conversation_context=""):
+def translate_text_for_dialogue_xai(text, source_lang="auto", target_lang="vi"):
     global XAI_API_KEY
     if not XAI_API_KEY:
         print("Consolog [LỖI]: Khóa API XAI chưa set.")
@@ -416,7 +424,7 @@ def translate_text_for_dialogue_xai(text, source_lang="auto", target_lang="vi", 
         print(f"Consolog [LỖI]: Lỗi khi gọi API XAI: {str(e)}")
         return text, None
 
-def translate_text_for_dialogue_chatgpt(text, source_lang="auto", target_lang="vi", conversation_context=""):
+def translate_text_for_dialogue_chatgpt(text, source_lang="auto", target_lang="vi"):
     global CHATGPT_API_KEY
     if not CHATGPT_API_KEY:
         print("Consolog [LỖI]: Khóa API ChatGPT chưa set.")
@@ -458,7 +466,7 @@ def translate_text_for_dialogue_chatgpt(text, source_lang="auto", target_lang="v
         print(f"Consolog [LỖI]: Lỗi khi gọi API ChatGPT: {str(e)}")
         return text, None
 
-def translate_text_for_dialogue_llm(text, source_lang="auto", target_lang="vi", conversation_context=""):
+def translate_text_for_dialogue_llm(text, source_lang="auto", target_lang="vi"):
     global LLM_API_KEY
     if not LLM_API_KEY:
         print("Consolog [LỖI]: Khóa API LLM chưa set.")

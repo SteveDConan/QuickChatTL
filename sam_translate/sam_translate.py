@@ -154,23 +154,122 @@ def create_sam_mini_chat() -> None:
         "font": ("Segoe UI", 10, "bold"),
         "relief": "flat",
         "borderwidth": 0,
-        "padx": 15,
+        "padx": 8,
+        "pady": 3,
         "height": 1,
-        "cursor": "hand2"
+        "cursor": "hand2",
+        "width": 10,  # Set fixed width for the button
+        "anchor": "center"  # Center the text
     }
     
     option_menu_style = {
         "bg": "#ffffff",
-        "fg": style["fg"],
-        "font": style["font"],
+        "fg": "#333333",
+        "font": ("Segoe UI", 10),
         "relief": "flat",
         "borderwidth": 1,
         "highlightthickness": 1,
-        "highlightbackground": "#cccccc",
-        "width": 12,
+        "highlightbackground": "#e0e0e0",
+        "highlightcolor": "#007AFF",
         "height": 1,
-        "indicatoron": 0
+        "indicatoron": 0,
+        "anchor": "center",
+        "activebackground": "#f5f5f5",
+        "activeforeground": "#007AFF"
     }
+    
+    def create_modern_option_menu(parent, variable, values, command=None, style_override=None):
+        menu = tk.OptionMenu(parent, variable, *values, command=command)
+        style = option_menu_style.copy()
+        if style_override:
+            style.update(style_override)
+        menu.config(**style)
+        
+        # Style the dropdown menu
+        menu["menu"].config(
+            bg="#ffffff",
+            fg="#333333",
+            activebackground="#f5f5f5",
+            activeforeground="#007AFF",
+            font=("Segoe UI", 10),
+            relief="flat",
+            borderwidth=1
+        )
+        
+        # Add checkmark to selected item and highlight current selection
+        def update_menu_style(*args):
+            menu["menu"].delete(0, "end")
+            current_value = variable.get()
+            
+            for value in values:
+                if value == current_value:
+                    menu["menu"].add_command(
+                        label=f"✓ {value}",
+                        command=lambda v=value: (variable.set(v), command(v) if command else None),
+                        background="#e3f2fd",
+                        foreground="#007AFF",
+                        font=("Segoe UI", 10, "bold")
+                    )
+                else:
+                    menu["menu"].add_command(
+                        label=f"  {value}",
+                        command=lambda v=value: (variable.set(v), command(v) if command else None),
+                        background="#ffffff",
+                        foreground="#333333",
+                        font=("Segoe UI", 10)
+                    )
+            
+            # Update button width based on current selection
+            current_text = f"✓ {current_value}" if current_value else ""
+            menu.config(width=len(current_text))
+        
+        # Update menu style when variable changes
+        variable.trace_add("write", update_menu_style)
+        # Initial update
+        update_menu_style()
+        
+        # Add hover effect
+        def on_enter(e):
+            if e.widget.cget("state") != "disabled":
+                e.widget.config(background="#f5f5f5")
+        
+        def on_leave(e):
+            if e.widget.cget("state") != "disabled":
+                current_value = variable.get()
+                if e.widget.cget("text").strip() == current_value:
+                    e.widget.config(background="#e3f2fd")
+                else:
+                    e.widget.config(background="#ffffff")
+        
+        menu.bind("<Enter>", on_enter)
+        menu.bind("<Leave>", on_leave)
+        
+        return menu
+    
+    api_var = tk.StringVar(value=config.selected_api)
+    
+    def update_api(val: str) -> None:
+        config.selected_api = val
+    
+    api_menu_style = {
+        "font": ("Segoe UI", 10, "bold"),
+        "fg": "#2E7D32",  # Dark green text
+        "bg": "#E8F5E9",  # Light green background
+        "activebackground": "#C8E6C9",  # Slightly darker green for hover
+        "activeforeground": "#1B5E20"  # Darker green for hover text
+    }
+    
+    api_menu = create_modern_option_menu(frame, api_var, ["XAI", "ChatGPT", "LLM"], update_api, api_menu_style)
+    api_menu.grid(row=0, column=0, padx=5, pady=5, sticky="e")
+    
+    btn_quit = tk.Button(
+        frame,
+        text="Quit",
+        command=destroy_sam_mini_chat,
+        bg="#FF3B30",
+        **{k: v for k, v in button_style.items() if k != "bg"}
+    )
+    btn_quit.grid(row=0, column=1, padx=5, pady=5, sticky="e")
     
     target_lang_var = tk.StringVar(value=config.lang_map.get(config.target_lang_selection, "Tiếng Anh"))
     
@@ -182,20 +281,8 @@ def create_sam_mini_chat() -> None:
             window_state.hwnd_target_lang[hwnd] = lang_code
     
     lang_display_names = [config.lang_map[lang] for lang in config.all_lang_options if lang in config.lang_map]
-    target_lang_menu = tk.OptionMenu(frame, target_lang_var, *lang_display_names, command=update_target_lang)
-    target_lang_menu.config(**option_menu_style)
-    target_lang_menu.grid(row=0, column=1, padx=5, pady=5, sticky="e")
-    
-    api_var = tk.StringVar(value=config.selected_api)
-    
-    def update_api(val: str) -> None:
-        config.selected_api = val
-    
-    api_menu = tk.OptionMenu(frame, api_var, *["XAI", "ChatGPT", "LLM"], command=update_api)
-    api_menu_style = option_menu_style.copy()
-    api_menu_style["width"] = 8
-    api_menu.config(**api_menu_style)
-    api_menu.grid(row=0, column=2, padx=5, pady=5, sticky="e")
+    target_lang_menu = create_modern_option_menu(frame, target_lang_var, lang_display_names, update_target_lang)
+    target_lang_menu.grid(row=0, column=2, padx=5, pady=5, sticky="e")
     
     window_state.sam_mini_chat_entry = tk.Text(
         frame,
@@ -210,8 +297,16 @@ def create_sam_mini_chat() -> None:
         padx=5,
         pady=3
     )
-    window_state.sam_mini_chat_entry.grid(row=0, column=0, sticky="we", padx=5, pady=5)
-    frame.columnconfigure(0, weight=1)
+    window_state.sam_mini_chat_entry.grid(row=0, column=3, sticky="we", padx=5, pady=5)
+    frame.columnconfigure(3, weight=1)
+    
+    window_state.sam_mini_chat_btn_send = tk.Button(
+        frame,
+        text="Send",
+        command=send_sam_mini_chat_message,
+        **button_style
+    )
+    window_state.sam_mini_chat_btn_send.grid(row=0, column=4, padx=5, pady=5, sticky="e")
     
     # Add quick reply button
     quick_reply_text = "Xin chào! Bạn cần chúng tôi giúp đỡ gì không ?"
@@ -264,6 +359,17 @@ def create_sam_mini_chat() -> None:
     quick_reply_btn2.bind("<Enter>", on_quick_reply_enter)
     quick_reply_btn2.bind("<Leave>", on_quick_reply_leave)
     
+    def on_enter(e: tk.Event) -> None:
+        e.widget['background'] = '#0056b3' if e.widget['text'] == 'Send' else '#cc2f26'
+    
+    def on_leave(e: tk.Event) -> None:
+        e.widget['background'] = '#007AFF' if e.widget['text'] == 'Send' else '#FF3B30'
+    
+    window_state.sam_mini_chat_btn_send.bind("<Enter>", on_enter)
+    window_state.sam_mini_chat_btn_send.bind("<Leave>", on_leave)
+    btn_quit.bind("<Enter>", on_enter)
+    btn_quit.bind("<Leave>", on_leave)
+    
     def send_quick_reply(text):
         window_state.sam_mini_chat_entry.delete("1.0", tk.END)
         window_state.sam_mini_chat_entry.insert("1.0", text)
@@ -283,34 +389,6 @@ def create_sam_mini_chat() -> None:
     
     window_state.sam_mini_chat_entry.bind("<Return>", on_enter)
     window_state.sam_mini_chat_entry.bind("<Shift-Return>", on_shift_enter)
-    
-    window_state.sam_mini_chat_btn_send = tk.Button(
-        frame,
-        text="Send",
-        command=send_sam_mini_chat_message,
-        **button_style
-    )
-    window_state.sam_mini_chat_btn_send.grid(row=0, column=3, padx=5, pady=5, sticky="e")
-    
-    btn_quit = tk.Button(
-        frame,
-        text="Quit",
-        command=destroy_sam_mini_chat,
-        bg="#FF3B30",
-        **{k: v for k, v in button_style.items() if k != "bg"}
-    )
-    btn_quit.grid(row=0, column=4, padx=5, pady=5, sticky="e")
-    
-    def on_enter(e: tk.Event) -> None:
-        e.widget['background'] = '#0056b3' if e.widget['text'] == 'Send' else '#cc2f26'
-    
-    def on_leave(e: tk.Event) -> None:
-        e.widget['background'] = '#007AFF' if e.widget['text'] == 'Send' else '#FF3B30'
-    
-    window_state.sam_mini_chat_btn_send.bind("<Enter>", on_enter)
-    window_state.sam_mini_chat_btn_send.bind("<Leave>", on_leave)
-    btn_quit.bind("<Enter>", on_enter)
-    btn_quit.bind("<Leave>", on_leave)
     
     def start_move(event: tk.Event) -> None:
         frame.x = event.x
@@ -402,54 +480,7 @@ def update_sam_mini_chat_position() -> None:
             
         time.sleep(0.1)
 
-def send_sam_mini_chat_message() -> None:
-    if window_state.sam_mini_chat_entry is None:
-        return
-        
-    msg = window_state.sam_mini_chat_entry.get("1.0", tk.END).strip()
-    if not msg:
-        return
-        
-    original_msg = msg
-    window_state.sam_mini_chat_entry.delete("1.0", tk.END)
-    hwnd = get_correct_telegram_hwnd()
-    if hwnd is None:
-        window_state.sam_mini_chat_entry.insert("1.0", original_msg)
-        return
-        
-    target_lang = window_state.hwnd_target_lang.get(hwnd, config.target_lang_selection)
-
-    window_state.sam_mini_chat_btn_send.config(text="Sending", state=tk.DISABLED)
-    original_bg = window_state.sam_mini_chat_btn_send.cget("background")
-    window_state.sam_mini_chat_btn_send.config(background="#90EE90")
-    window_state.root.after(100, lambda: window_state.sam_mini_chat_btn_send.config(background=original_bg))
-    window_state.root.after(200, lambda: window_state.sam_mini_chat_btn_send.config(background="#90EE90"))
-    window_state.root.after(300, lambda: window_state.sam_mini_chat_btn_send.config(background=original_bg))
-
-    def send_thread() -> None:
-        try:
-            translated = None
-            if config.selected_api == "XAI":
-                translated, _ = translate_text_for_dialogue_xai(msg, source_lang="auto", target_lang=target_lang)
-            elif config.selected_api == "ChatGPT":
-                translated, _ = translate_text_for_dialogue_chatgpt(msg, source_lang="auto", target_lang=target_lang)
-            elif config.selected_api == "LLM":
-                translated, _ = translate_text_for_dialogue_llm(msg, source_lang="auto", target_lang=target_lang)
-            
-            if translated is None or translated == msg:
-                raise Exception("Translation failed")
-                
-            send_message_to_telegram_input(hwnd, translated)
-            window_state.sam_mini_chat_entry.focus_force()
-        except Exception as e:
-            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.delete("1.0", tk.END))
-            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.insert("1.0", original_msg))
-        finally:
-            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(text="Send", state=tk.NORMAL))
-
-    threading.Thread(target=send_thread, daemon=True).start()
-
-def send_message_to_telegram_input(hwnd: int, message: str) -> None:
+def send_message_to_telegram_input(hwnd: int, message: str) -> bool:
     rect = ctypes.wintypes.RECT()
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     width = rect.right - rect.left
@@ -484,6 +515,101 @@ def send_message_to_telegram_input(hwnd: int, message: str) -> None:
     time.sleep(0.05)
     user32.keybd_event(VK_RETURN, 0, 2, 0)
     time.sleep(0.1)
+    
+    # Return True to indicate successful message sending
+    return True
+
+def send_sam_mini_chat_message() -> None:
+    if window_state.sam_mini_chat_entry is None:
+        return
+        
+    msg = window_state.sam_mini_chat_entry.get("1.0", tk.END).strip()
+    if not msg:
+        return
+        
+    original_msg = msg
+    window_state.sam_mini_chat_entry.delete("1.0", tk.END)
+    hwnd = get_correct_telegram_hwnd()
+    if hwnd is None:
+        window_state.sam_mini_chat_entry.insert("1.0", original_msg)
+        return
+        
+    target_lang = window_state.hwnd_target_lang.get(hwnd, config.target_lang_selection)
+
+    # Disable input and send button during sending
+    window_state.sam_mini_chat_entry.config(state=tk.DISABLED)
+    window_state.sam_mini_chat_btn_send.config(state=tk.DISABLED)
+    
+    # Create loading animation
+    loading_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    current_frame = 0
+    loading_active = True
+    
+    def update_loading():
+        nonlocal current_frame
+        if window_state.sam_mini_chat_btn_send.winfo_exists() and loading_active:
+            window_state.sam_mini_chat_btn_send.config(
+                text=f"Sending {loading_frames[current_frame]}",
+                background="#90EE90"
+            )
+            current_frame = (current_frame + 1) % len(loading_frames)
+            window_state.root.after(100, update_loading)
+    
+    update_loading()
+
+    def send_thread() -> None:
+        nonlocal loading_active
+        try:
+            translated = None
+            if config.selected_api == "XAI":
+                translated, _ = translate_text_for_dialogue_xai(msg, source_lang="auto", target_lang=target_lang)
+            elif config.selected_api == "ChatGPT":
+                translated, _ = translate_text_for_dialogue_chatgpt(msg, source_lang="auto", target_lang=target_lang)
+            elif config.selected_api == "LLM":
+                translated, _ = translate_text_for_dialogue_llm(msg, source_lang="auto", target_lang=target_lang)
+            
+            if translated is None or translated == msg:
+                raise Exception("Translation failed")
+            
+            # Stop loading animation
+            loading_active = False
+            
+            # Send message and wait for completion
+            if send_message_to_telegram_input(hwnd, translated):
+                # Success animation
+                window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(
+                    text="✓ Sent",
+                    background="#4CAF50"
+                ))
+                window_state.root.after(300, lambda: window_state.sam_mini_chat_btn_send.config(
+                    text="Send",
+                    background="#007AFF"
+                ))
+                window_state.sam_mini_chat_entry.focus_force()
+            else:
+                raise Exception("Failed to send message")
+            
+        except Exception as e:
+            # Stop loading animation
+            loading_active = False
+            
+            # Error animation
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(
+                text="✗ Error",
+                background="#FF3B30"
+            ))
+            window_state.root.after(300, lambda: window_state.sam_mini_chat_btn_send.config(
+                text="Send",
+                background="#007AFF"
+            ))
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.delete("1.0", tk.END))
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.insert("1.0", original_msg))
+        finally:
+            # Re-enable input and send button
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.config(state=tk.NORMAL))
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(state=tk.NORMAL))
+
+    threading.Thread(target=send_thread, daemon=True).start()
 
 def get_correct_telegram_hwnd() -> Optional[int]:
     hwnd_fore = user32.GetForegroundWindow()

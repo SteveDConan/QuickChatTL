@@ -6,6 +6,8 @@ import threading
 import time
 import tkinter as tk
 from tkinter import messagebox
+import customtkinter as ctk
+from ttkthemes import ThemedTk
 import ctypes
 from ctypes import wintypes
 import re
@@ -16,6 +18,10 @@ try:
     import psutil
 except ImportError:
     psutil = None
+
+# Set appearance mode and default color theme
+ctk.set_appearance_mode("light")  # Modes: "System" (standard), "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
 # Windows API Constants
 HWND_TOPMOST = -1
@@ -54,10 +60,10 @@ class Config:
 
 class WindowState:
     def __init__(self):
-        self.root: Optional[tk.Tk] = None
-        self.sam_mini_chat_win: Optional[tk.Tk] = None
-        self.sam_mini_chat_entry: Optional[tk.Text] = None
-        self.sam_mini_chat_btn_send: Optional[tk.Button] = None
+        self.root: Optional[ThemedTk] = None
+        self.sam_mini_chat_win: Optional[ThemedTk] = None
+        self.sam_mini_chat_entry: Optional[ctk.CTkTextbox] = None
+        self.sam_mini_chat_btn_send: Optional[ctk.CTkButton] = None
         self.last_valid_telegram_hwnd: Optional[int] = None
         self.widget_sam_mini_chat_thread_running: bool = True
         self.z_order_callback: Optional[Any] = None
@@ -73,11 +79,16 @@ class WINDOWPLACEMENT(ctypes.Structure):
         ("rcNormalPosition", ctypes.wintypes.RECT),
     ]
 
+class QuickReply:
+    def __init__(self, title, content):
+        self.title = title
+        self.content = content
+
 # Global instances
 config = Config()
 window_state = WindowState()
 
-def set_root(r: tk.Tk) -> None:
+def set_root(r: ThemedTk) -> None:
     window_state.root = r
 
 def prompt_for_firebase_url() -> Optional[str]:
@@ -130,146 +141,66 @@ def create_sam_mini_chat() -> None:
     if window_state.root is None:
         return
     
+    window_config = config.config.get("widget_config", {}).get("window", {})
     window_state.sam_mini_chat_win = window_state.root
-    window_state.sam_mini_chat_win.title("Sam Mini Chat")
-    window_state.sam_mini_chat_win.overrideredirect(True)
-    window_state.sam_mini_chat_win.geometry(f"600x{config.widget_height}+0+0")
+    window_state.sam_mini_chat_win.title(window_config.get("title", "Sam Mini Chat"))
+    window_state.sam_mini_chat_win.overrideredirect(window_config.get("overrideredirect", True))
+    window_state.sam_mini_chat_win.geometry(f"{window_config.get('width', 600)}x{config.widget_height}+0+0")
     
     setup_z_order_monitoring()
     
-    frame = tk.Frame(window_state.sam_mini_chat_win, bg="#f0f0f0", padx=10, pady=5)
-    frame.pack(fill=tk.BOTH, expand=True)
+    main_frame = ctk.CTkFrame(
+        window_state.sam_mini_chat_win,
+        fg_color=window_config.get("bg", "#f0f0f0"),
+        corner_radius=0
+    )
+    main_frame.pack(fill=tk.BOTH, expand=True, padx=window_config.get("padx", 10), pady=window_config.get("pady", 5))
     
-    style = {
-        "bg": "#f0f0f0",
-        "fg": "#333333",
-        "font": ("Segoe UI", 11),
-        "relief": "flat",
-        "borderwidth": 0
-    }
+    # Top row frame
+    top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+    top_frame.pack(fill=tk.X, pady=(0, 5))
     
-    button_style = {
-        "bg": "#007AFF",
-        "fg": "white",
-        "font": ("Segoe UI", 10, "bold"),
-        "relief": "flat",
-        "borderwidth": 0,
-        "padx": 8,
-        "pady": 3,
-        "height": 1,
-        "cursor": "hand2",
-        "width": 10,  # Set fixed width for the button
-        "anchor": "center"  # Center the text
-    }
+    style = config.config.get("widget_config", {}).get("style", {})
+    button_style = config.config.get("widget_config", {}).get("button_style", {})
+    option_menu_style = config.config.get("widget_config", {}).get("option_menu_style", {})
+    api_menu_style = config.config.get("widget_config", {}).get("api_menu_style", {})
+    text_entry_style = config.config.get("widget_config", {}).get("text_entry_style", {})
     
-    option_menu_style = {
-        "bg": "#ffffff",
-        "fg": "#333333",
-        "font": ("Segoe UI", 10),
-        "relief": "flat",
-        "borderwidth": 1,
-        "highlightthickness": 1,
-        "highlightbackground": "#e0e0e0",
-        "highlightcolor": "#007AFF",
-        "height": 1,
-        "indicatoron": 0,
-        "anchor": "center",
-        "activebackground": "#f5f5f5",
-        "activeforeground": "#007AFF"
-    }
-    
-    def create_modern_option_menu(parent, variable, values, command=None, style_override=None):
-        menu = tk.OptionMenu(parent, variable, *values, command=command)
-        style = option_menu_style.copy()
-        if style_override:
-            style.update(style_override)
-        menu.config(**style)
-        
-        # Style the dropdown menu
-        menu["menu"].config(
-            bg="#ffffff",
-            fg="#333333",
-            activebackground="#f5f5f5",
-            activeforeground="#007AFF",
-            font=("Segoe UI", 10),
-            relief="flat",
-            borderwidth=1
-        )
-        
-        # Add checkmark to selected item and highlight current selection
-        def update_menu_style(*args):
-            menu["menu"].delete(0, "end")
-            current_value = variable.get()
-            
-            for value in values:
-                if value == current_value:
-                    menu["menu"].add_command(
-                        label=f"✓ {value}",
-                        command=lambda v=value: (variable.set(v), command(v) if command else None),
-                        background="#e3f2fd",
-                        foreground="#007AFF",
-                        font=("Segoe UI", 10, "bold")
-                    )
-                else:
-                    menu["menu"].add_command(
-                        label=f"  {value}",
-                        command=lambda v=value: (variable.set(v), command(v) if command else None),
-                        background="#ffffff",
-                        foreground="#333333",
-                        font=("Segoe UI", 10)
-                    )
-            
-            # Update button width based on current selection
-            current_text = f"✓ {current_value}" if current_value else ""
-            menu.config(width=len(current_text))
-        
-        # Update menu style when variable changes
-        variable.trace_add("write", update_menu_style)
-        # Initial update
-        update_menu_style()
-        
-        # Add hover effect
-        def on_enter(e):
-            if e.widget.cget("state") != "disabled":
-                e.widget.config(background="#f5f5f5")
-        
-        def on_leave(e):
-            if e.widget.cget("state") != "disabled":
-                current_value = variable.get()
-                if e.widget.cget("text").strip() == current_value:
-                    e.widget.config(background="#e3f2fd")
-                else:
-                    e.widget.config(background="#ffffff")
-        
-        menu.bind("<Enter>", on_enter)
-        menu.bind("<Leave>", on_leave)
-        
-        return menu
+    # Left controls frame (API, Quit, Language)
+    left_controls = ctk.CTkFrame(top_frame, fg_color="transparent")
+    left_controls.pack(side=tk.LEFT, padx=5)
     
     api_var = tk.StringVar(value=config.selected_api)
     
     def update_api(val: str) -> None:
         config.selected_api = val
     
-    api_menu_style = {
-        "font": ("Segoe UI", 10, "bold"),
-        "fg": "#2E7D32",  # Dark green text
-        "bg": "#E8F5E9",  # Light green background
-        "activebackground": "#C8E6C9",  # Slightly darker green for hover
-        "activeforeground": "#1B5E20"  # Darker green for hover text
-    }
+    api_menu = ctk.CTkOptionMenu(
+        left_controls,
+        values=["XAI", "ChatGPT", "LLM"],
+        variable=api_var,
+        command=update_api,
+        font=tuple(api_menu_style.get("font", ["Segoe UI", 10, "bold"])),
+        fg_color=api_menu_style.get("bg", "#E8F5E9"),
+        text_color=api_menu_style.get("fg", "#2E7D32"),
+        button_color=api_menu_style.get("activebackground", "#C8E6C9"),
+        button_hover_color=api_menu_style.get("activeforeground", "#1B5E20"),
+        corner_radius=5,
+        width=api_menu_style.get("width", 80)
+    )
+    api_menu.pack(side=tk.LEFT, padx=5)
     
-    api_menu = create_modern_option_menu(frame, api_var, ["XAI", "ChatGPT", "LLM"], update_api, api_menu_style)
-    api_menu.grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    
-    btn_quit = tk.Button(
-        frame,
+    btn_quit = ctk.CTkButton(
+        left_controls,
         text="Quit",
         command=destroy_sam_mini_chat,
-        bg="#FF3B30",
-        **{k: v for k, v in button_style.items() if k != "bg"}
+        fg_color="#FF3B30",
+        hover_color="#cc2f26",
+        font=tuple(button_style.get("font", ["Segoe UI", 10, "bold"])),
+        corner_radius=5,
+        width=button_style.get("width", 10)
     )
-    btn_quit.grid(row=0, column=1, padx=5, pady=5, sticky="e")
+    btn_quit.pack(side=tk.LEFT, padx=5)
     
     target_lang_var = tk.StringVar(value=config.lang_map.get(config.target_lang_selection, "Tiếng Anh"))
     
@@ -281,94 +212,178 @@ def create_sam_mini_chat() -> None:
             window_state.hwnd_target_lang[hwnd] = lang_code
     
     lang_display_names = [config.lang_map[lang] for lang in config.all_lang_options if lang in config.lang_map]
-    target_lang_menu = create_modern_option_menu(frame, target_lang_var, lang_display_names, update_target_lang)
-    target_lang_menu.grid(row=0, column=2, padx=5, pady=5, sticky="e")
-    
-    window_state.sam_mini_chat_entry = tk.Text(
-        frame,
-        font=style["font"],
-        relief="flat",
-        borderwidth=1,
-        highlightthickness=1,
-        highlightbackground="#cccccc",
-        highlightcolor="#007AFF",
-        height=1,
-        wrap=tk.WORD,
-        padx=5,
-        pady=3
+    target_lang_menu = ctk.CTkOptionMenu(
+        left_controls,
+        values=lang_display_names,
+        variable=target_lang_var,
+        command=update_target_lang,
+        font=tuple(option_menu_style.get("font", ["Segoe UI", 10])),
+        fg_color=option_menu_style.get("bg", "#ffffff"),
+        text_color=option_menu_style.get("fg", "#333333"),
+        button_color=option_menu_style.get("activebackground", "#f5f5f5"),
+        button_hover_color=option_menu_style.get("activeforeground", "#007AFF"),
+        corner_radius=5
     )
-    window_state.sam_mini_chat_entry.grid(row=0, column=3, sticky="we", padx=5, pady=5)
-    frame.columnconfigure(3, weight=1)
+    target_lang_menu.pack(side=tk.LEFT, padx=5)
     
-    window_state.sam_mini_chat_btn_send = tk.Button(
-        frame,
+    # Input frame
+    input_frame = ctk.CTkFrame(top_frame, fg_color="transparent")
+    input_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+    
+    window_state.sam_mini_chat_entry = ctk.CTkTextbox(
+        input_frame,
+        font=tuple(text_entry_style.get("font", ["Segoe UI", 11])),
+        fg_color=text_entry_style.get("bg", "#ffffff"),
+        text_color=text_entry_style.get("fg", "#333333"),
+        border_width=text_entry_style.get("borderwidth", 1),
+        corner_radius=5,
+        height=text_entry_style.get("height", 1) * 20
+    )
+    window_state.sam_mini_chat_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    
+    window_state.sam_mini_chat_btn_send = ctk.CTkButton(
+        input_frame,
         text="Send",
         command=send_sam_mini_chat_message,
-        **button_style
+        font=tuple(button_style.get("font", ["Segoe UI", 10, "bold"])),
+        fg_color=button_style.get("bg", "#007AFF"),
+        hover_color="#0056b3",
+        corner_radius=5,
+        width=button_style.get("width", 10)
     )
-    window_state.sam_mini_chat_btn_send.grid(row=0, column=4, padx=5, pady=5, sticky="e")
+    window_state.sam_mini_chat_btn_send.pack(side=tk.LEFT, padx=5)
     
-    # Add quick reply button
-    quick_reply_text = "Xin chào! Bạn cần chúng tôi giúp đỡ gì không ?"
-    quick_reply_btn = tk.Button(
-        frame,
-        text=quick_reply_text,
-        command=lambda: send_quick_reply(quick_reply_text),
-        bg="#E8F5E9",
-        fg="#2E7D32",
-        font=("Segoe UI", 9),
-        relief="flat",
-        borderwidth=0,
-        padx=10,
-        pady=5,
-        cursor="hand2"
-    )
-    quick_reply_btn.grid(row=1, column=0, columnspan=5, sticky="we", padx=5, pady=(0, 5))
+    # Quick language selection frame
+    quick_lang_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+    quick_lang_frame.pack(fill=tk.X, pady=(0, 5))
     
-    # Add second quick reply button
-    quick_reply_text2 = "Vui lòng cung cấp cho tôi Email hoặc Số điện thoại đăng ký của bạn, tôi sẽ kiểm tra trên hệ thống !"
-    quick_reply_btn2 = tk.Button(
-        frame,
-        text=quick_reply_text2,
-        command=lambda: send_quick_reply(quick_reply_text2),
-        bg="#E3F2FD",
-        fg="#1565C0",
-        font=("Segoe UI", 9),
-        relief="flat",
-        borderwidth=0,
-        padx=10,
-        pady=5,
-        cursor="hand2"
-    )
-    quick_reply_btn2.grid(row=2, column=0, columnspan=5, sticky="we", padx=5, pady=(0, 5))
+    quick_lang_style = config.config.get("language_config", {}).get("quick_language_style", {})
+    quick_languages = config.config.get("language_config", {}).get("quick_languages", ["en", "vi", "ja", "zh", "ko"])
     
-    def on_quick_reply_enter(e):
-        if e.widget == quick_reply_btn:
-            e.widget['background'] = '#C8E6C9'
-        else:
-            e.widget['background'] = '#BBDEFB'
+    def on_quick_lang_click(lang_code: str) -> None:
+        lang_name = config.lang_map.get(lang_code, lang_code)
+        target_lang_var.set(lang_name)
+        update_target_lang(lang_name)
     
-    def on_quick_reply_leave(e):
-        if e.widget == quick_reply_btn:
-            e.widget['background'] = '#E8F5E9'
-        else:
-            e.widget['background'] = '#E3F2FD'
+    # Create a container frame for the buttons that aligns with input_frame
+    lang_buttons_frame = ctk.CTkFrame(quick_lang_frame, fg_color="transparent")
+    lang_buttons_frame.pack(side=tk.LEFT, padx=(310, 0))  # Set left padding to 200px
     
-    quick_reply_btn.bind("<Enter>", on_quick_reply_enter)
-    quick_reply_btn.bind("<Leave>", on_quick_reply_leave)
-    quick_reply_btn2.bind("<Enter>", on_quick_reply_enter)
-    quick_reply_btn2.bind("<Leave>", on_quick_reply_leave)
+    for lang_code in quick_languages:
+        lang_name = config.lang_map.get(lang_code, lang_code)
+        btn = ctk.CTkButton(
+            lang_buttons_frame,
+            text=lang_name,
+            command=lambda l=lang_code: on_quick_lang_click(l),
+            font=tuple(quick_lang_style.get("button", {}).get("font", ["Segoe UI", 13])),
+            fg_color=quick_lang_style.get("button", {}).get("fg_color", "#E3F2FD"),
+            text_color=quick_lang_style.get("button", {}).get("text_color", "#1976D2"),
+            hover_color=quick_lang_style.get("button", {}).get("hover_color", "#BBDEFB"),
+            corner_radius=quick_lang_style.get("button", {}).get("corner_radius", 3),
+            border_width=quick_lang_style.get("button", {}).get("border_width", 1),
+            border_color=quick_lang_style.get("button", {}).get("border_color", "#90CAF9"),
+            height=quick_lang_style.get("button", {}).get("height", 1) * 20,
+            width=quick_lang_style.get("button", {}).get("width", 8),
+            cursor=quick_lang_style.get("button", {}).get("cursor", "hand2")
+        )
+        btn.pack(side=tk.LEFT, padx=2)
+        
+        def update_btn_appearance(*args, btn=btn):
+            if btn.cget("text") == target_lang_var.get():
+                btn.configure(
+                    fg_color=quick_lang_style.get("button", {}).get("selected_color", "#2196F3"),
+                    text_color=quick_lang_style.get("button", {}).get("selected_text_color", "white"),
+                    border_color=quick_lang_style.get("button", {}).get("selected_border_color", "#1976D2")
+                )
+            else:
+                btn.configure(
+                    fg_color=quick_lang_style.get("button", {}).get("fg_color", "#E3F2FD"),
+                    text_color=quick_lang_style.get("button", {}).get("text_color", "#1976D2"),
+                    border_color=quick_lang_style.get("button", {}).get("border_color", "#90CAF9")
+                )
+        
+        target_lang_var.trace_add("write", update_btn_appearance)
+        update_btn_appearance()
     
-    def on_enter(e: tk.Event) -> None:
-        e.widget['background'] = '#0056b3' if e.widget['text'] == 'Send' else '#cc2f26'
+    # Quick reply frame
+    quick_reply_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+    quick_reply_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
     
-    def on_leave(e: tk.Event) -> None:
-        e.widget['background'] = '#007AFF' if e.widget['text'] == 'Send' else '#FF3B30'
+    # Get quick replies from config
+    quick_replies = config.config.get("widget_config", {}).get("quick_reply_buttons", [])
     
-    window_state.sam_mini_chat_btn_send.bind("<Enter>", on_enter)
-    window_state.sam_mini_chat_btn_send.bind("<Leave>", on_leave)
-    btn_quit.bind("<Enter>", on_enter)
-    btn_quit.bind("<Leave>", on_leave)
+    # Create two columns with equal width
+    left_column = ctk.CTkFrame(quick_reply_frame, fg_color="transparent")
+    left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+    
+    # Add vertical divider
+    divider = ctk.CTkFrame(quick_reply_frame, width=2, fg_color="#E0E0E0")
+    divider.pack(side=tk.LEFT, fill=tk.Y, padx=0)
+    
+    right_column = ctk.CTkFrame(quick_reply_frame, fg_color="transparent")
+    right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+    
+    # Get button colors from config
+    button_colors = config.config.get("widget_config", {}).get("quick_reply_colors", [
+        {"bg": "#4CAF50", "fg": "white", "hover": "#45A049"},  # Green
+        {"bg": "#2196F3", "fg": "white", "hover": "#1E88E5"},  # Blue
+        {"bg": "#FF9800", "fg": "white", "hover": "#F57C00"},  # Orange
+        {"bg": "#9C27B0", "fg": "white", "hover": "#8E24AA"},  # Purple
+        {"bg": "#00BCD4", "fg": "white", "hover": "#00ACC1"},  # Cyan
+        {"bg": "#F44336", "fg": "white", "hover": "#E53935"},  # Red
+        {"bg": "#8BC34A", "fg": "white", "hover": "#7CB342"},  # Light Green
+        {"bg": "#3F51B5", "fg": "white", "hover": "#3949AB"},  # Indigo
+        {"bg": "#E91E63", "fg": "white", "hover": "#D81B60"},  # Pink
+        {"bg": "#795548", "fg": "white", "hover": "#6D4C41"}   # Brown
+    ])
+    
+    # Create buttons in two columns
+    for i, reply in enumerate(quick_replies):
+        # Get color from config, use default if not found
+        color_index = i % len(button_colors)
+        style = button_colors[color_index]
+        
+        # Determine which column to place the button
+        column = left_column if i % 2 == 0 else right_column
+        
+        quick_reply_btn = ctk.CTkButton(
+            column,
+            text=reply.get("title", ""),
+            command=lambda r=reply: send_quick_reply(r.get("content", "")),
+            font=tuple(reply.get("font", ["Segoe UI", 9, "bold"])),
+            fg_color=style["bg"],
+            text_color=style["fg"],
+            hover_color=style["hover"],
+            corner_radius=8,
+            width=180,
+            height=35,
+            border_width=0,
+            anchor="w"  # Left align text
+        )
+        quick_reply_btn.pack(pady=2, fill="x", expand=True)
+    
+    # Add resize handle at the bottom
+    resize_handle = ctk.CTkFrame(main_frame, height=5, fg_color="#CCCCCC", cursor="sb_v_double_arrow")
+    resize_handle.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
+    
+    def start_resize(event):
+        resize_handle.y_start = event.y_root
+        resize_handle.win_height = window_state.sam_mini_chat_win.winfo_height()
+        resize_handle.bind("<B1-Motion>", do_resize)
+        resize_handle.bind("<ButtonRelease-1>", stop_resize)
+    
+    def do_resize(event):
+        delta_y = event.y_root - resize_handle.y_start
+        new_height = resize_handle.win_height + delta_y
+        if new_height >= 100:  # Minimum height
+            window_state.sam_mini_chat_win.geometry(f"{window_state.sam_mini_chat_win.winfo_width()}x{new_height}")
+            config.widget_height = new_height
+    
+    def stop_resize(event):
+        resize_handle.unbind("<B1-Motion>")
+        resize_handle.unbind("<ButtonRelease-1>")
+    
+    resize_handle.bind("<Button-1>", start_resize)
     
     def send_quick_reply(text):
         window_state.sam_mini_chat_entry.delete("1.0", tk.END)
@@ -391,18 +406,18 @@ def create_sam_mini_chat() -> None:
     window_state.sam_mini_chat_entry.bind("<Shift-Return>", on_shift_enter)
     
     def start_move(event: tk.Event) -> None:
-        frame.x = event.x
-        frame.y = event.y
+        main_frame.x = event.x
+        main_frame.y = event.y
     
     def do_move(event: tk.Event) -> None:
-        deltax = event.x - frame.x
-        deltay = event.y - frame.y
+        deltax = event.x - main_frame.x
+        deltay = event.y - main_frame.y
         x = window_state.sam_mini_chat_win.winfo_x() + deltax
         y = window_state.sam_mini_chat_win.winfo_y() + deltay
         window_state.sam_mini_chat_win.geometry(f"+{x}+{y}")
     
-    frame.bind("<Button-1>", start_move)
-    frame.bind("<B1-Motion>", do_move)
+    main_frame.bind("<Button-1>", start_move)
+    main_frame.bind("<B1-Motion>", do_move)
     
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
 
@@ -499,9 +514,10 @@ def send_message_to_telegram_input(hwnd: int, message: str) -> bool:
     window_state.root.update()
     time.sleep(0.1)
     
-    VK_CONTROL = 0x11
-    VK_V = 0x56
-    VK_RETURN = 0x0D
+    keyboard_config = config.config.get("windows_api", {}).get("keyboard", {})
+    VK_CONTROL = keyboard_config.get("VK_CONTROL", 17)
+    VK_V = keyboard_config.get("VK_V", 86)
+    VK_RETURN = keyboard_config.get("VK_RETURN", 13)
     
     user32.keybd_event(VK_CONTROL, 0, 0, 0)
     time.sleep(0.05)
@@ -516,7 +532,6 @@ def send_message_to_telegram_input(hwnd: int, message: str) -> bool:
     user32.keybd_event(VK_RETURN, 0, 2, 0)
     time.sleep(0.1)
     
-    # Return True to indicate successful message sending
     return True
 
 def send_sam_mini_chat_message() -> None:
@@ -537,23 +552,33 @@ def send_sam_mini_chat_message() -> None:
     target_lang = window_state.hwnd_target_lang.get(hwnd, config.target_lang_selection)
 
     # Disable input and send button during sending
-    window_state.sam_mini_chat_entry.config(state=tk.DISABLED)
-    window_state.sam_mini_chat_btn_send.config(state=tk.DISABLED)
+    window_state.sam_mini_chat_entry.configure(state=tk.DISABLED)
+    window_state.sam_mini_chat_btn_send.configure(state=tk.DISABLED)
     
-    # Create loading animation
-    loading_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    # Get animation config
+    ui_config = config.config.get("ui_config", {})
+    loading_frames = ui_config.get("loading_frames", ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"])
+    loading_interval = ui_config.get("loading_interval", 100)
+    success_delay = ui_config.get("success_delay", 300)
+    error_delay = ui_config.get("error_delay", 300)
+    animation = ui_config.get("animation", {})
+    
+    # Get button style from config
+    button_style = config.config.get("widget_config", {}).get("button_style", {})
+    
     current_frame = 0
     loading_active = True
     
     def update_loading():
         nonlocal current_frame
         if window_state.sam_mini_chat_btn_send.winfo_exists() and loading_active:
-            window_state.sam_mini_chat_btn_send.config(
-                text=f"Sending {loading_frames[current_frame]}",
-                background="#90EE90"
+            sending_config = animation.get("sending", {})
+            window_state.sam_mini_chat_btn_send.configure(
+                text=sending_config.get("text", "Sending {frame}").format(frame=loading_frames[current_frame]),
+                fg_color=sending_config.get("bg", "#90EE90")
             )
             current_frame = (current_frame + 1) % len(loading_frames)
-            window_state.root.after(100, update_loading)
+            window_state.root.after(loading_interval, update_loading)
     
     update_loading()
 
@@ -577,13 +602,14 @@ def send_sam_mini_chat_message() -> None:
             # Send message and wait for completion
             if send_message_to_telegram_input(hwnd, translated):
                 # Success animation
-                window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(
-                    text="✓ Sent",
-                    background="#4CAF50"
+                success_config = animation.get("success", {})
+                window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.configure(
+                    text=success_config.get("text", "✓ Sent"),
+                    fg_color=success_config.get("bg", "#4CAF50")
                 ))
-                window_state.root.after(300, lambda: window_state.sam_mini_chat_btn_send.config(
+                window_state.root.after(success_delay, lambda: window_state.sam_mini_chat_btn_send.configure(
                     text="Send",
-                    background="#007AFF"
+                    fg_color=button_style.get("bg", "#007AFF")
                 ))
                 window_state.sam_mini_chat_entry.focus_force()
             else:
@@ -594,20 +620,21 @@ def send_sam_mini_chat_message() -> None:
             loading_active = False
             
             # Error animation
-            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(
-                text="✗ Error",
-                background="#FF3B30"
+            error_config = animation.get("error", {})
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.configure(
+                text=error_config.get("text", "✗ Error"),
+                fg_color=error_config.get("bg", "#FF3B30")
             ))
-            window_state.root.after(300, lambda: window_state.sam_mini_chat_btn_send.config(
+            window_state.root.after(error_delay, lambda: window_state.sam_mini_chat_btn_send.configure(
                 text="Send",
-                background="#007AFF"
+                fg_color=button_style.get("bg", "#007AFF")
             ))
             window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.delete("1.0", tk.END))
             window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.insert("1.0", original_msg))
         finally:
             # Re-enable input and send button
-            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.config(state=tk.NORMAL))
-            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.config(state=tk.NORMAL))
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.configure(state=tk.NORMAL))
+            window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.configure(state=tk.NORMAL))
 
     threading.Thread(target=send_thread, daemon=True).start()
 
@@ -672,16 +699,17 @@ def translate_text_for_dialogue_xai(text: str, source_lang: str = "auto", target
             "Content-Type": "application/json"
         }
         
+        translation_config = config.config.get("translation_config", {}).get("xai", {})
         payload = {
-            "model": "grok-beta",
+            "model": translation_config.get("model", "grok-beta"),
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.05,
-            "top_p": 0.9,
-            "max_tokens": 2000
+            "temperature": translation_config.get("temperature", 0.05),
+            "top_p": translation_config.get("top_p", 0.9),
+            "max_tokens": translation_config.get("max_tokens", 2000)
         }
         
         response = requests.post(
-            "https://api.x.ai/v1/chat/completions",
+            translation_config.get("api_url", "https://api.x.ai/v1/chat/completions"),
             headers=headers,
             json=payload,
             timeout=10
@@ -715,16 +743,17 @@ def translate_text_for_dialogue_chatgpt(text: str, source_lang: str = "auto", ta
             "Content-Type": "application/json"
         }
         
+        translation_config = config.config.get("translation_config", {}).get("chatgpt", {})
         payload = {
-            "model": "gpt-4",
+            "model": translation_config.get("model", "gpt-4"),
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.05,
-            "top_p": 0.9,
-            "max_tokens": 2000
+            "temperature": translation_config.get("temperature", 0.05),
+            "top_p": translation_config.get("top_p", 0.9),
+            "max_tokens": translation_config.get("max_tokens", 2000)
         }
         
         response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
+            translation_config.get("api_url", "https://api.openai.com/v1/chat/completions"),
             headers=headers,
             json=payload,
             timeout=10
@@ -763,12 +792,13 @@ def translate_text_for_dialogue_llm(text: str, source_lang: str = "auto", target
             f"Message: \"{text}\""
         )
         
+        translation_config = config.config.get("translation_config", {}).get("llm", {})
         payload = {
-            "model": "qwen3-8b",
+            "model": translation_config.get("model", "qwen3-8b"),
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.05,
-            "top_p": 0.9,
-            "max_tokens": 2000
+            "temperature": translation_config.get("temperature", 0.05),
+            "top_p": translation_config.get("top_p", 0.9),
+            "max_tokens": translation_config.get("max_tokens", 2000)
         }
         
         response = requests.post(api_url, headers=headers, json=payload, timeout=10)
@@ -821,14 +851,17 @@ def setup_z_order_monitoring() -> None:
         
         window_state.z_order_callback = WinEventProcType(win_event_callback)
         
+        windows_api_config = config.config.get("windows_api", {}).get("constants", {})
         user32.SetWinEventHook(
-            EVENT_OBJECT_REORDER,
-            EVENT_SYSTEM_FOREGROUND,
+            windows_api_config.get("EVENT_OBJECT_REORDER", 32772),
+            windows_api_config.get("EVENT_SYSTEM_FOREGROUND", 3),
             0,
             window_state.z_order_callback,
             0,
             0,
-            WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNTHREAD | WINEVENT_SKIPOWNPROCESS
+            windows_api_config.get("WINEVENT_OUTOFCONTEXT", 0) | 
+            windows_api_config.get("WINEVENT_SKIPOWNTHREAD", 1) | 
+            windows_api_config.get("WINEVENT_SKIPOWNPROCESS", 2)
         )
     except Exception as e:
         print(f"Error setting up Z-order monitoring: {e}")

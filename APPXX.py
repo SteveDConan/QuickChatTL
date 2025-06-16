@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter import messagebox
 from sam_translate.sam_translate import set_root, set_sam_mini_chat_globals, create_sam_mini_chat
 from config import load_config
+from ttkthemes import ThemedTk
+import customtkinter as ctk
 
 class SamMiniChatApp:
     def __init__(self):
@@ -30,8 +32,8 @@ class SamMiniChatApp:
             return
 
         try:
-            # Tạo cửa sổ chính
-            self.root = tk.Tk()
+            # Tạo cửa sổ chính với theme
+            self.root = ThemedTk(theme="arc")
             self.root.title("Sam Mini Chat")
             self.root.eval('tk::PlaceWindow . center')
             

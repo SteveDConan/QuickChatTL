@@ -13,6 +13,7 @@ from ctypes import wintypes
 import re
 from config import load_config
 from typing import Optional, Tuple, Dict, Any
+from minichat.utils import remove_think_tags, fetch_ngrok_url
 
 try:
     import psutil
@@ -78,11 +79,6 @@ class WINDOWPLACEMENT(ctypes.Structure):
         ("ptMaxPosition", ctypes.wintypes.POINT),
         ("rcNormalPosition", ctypes.wintypes.RECT),
     ]
-
-class QuickReply:
-    def __init__(self, title, content):
-        self.title = title
-        self.content = content
 
 # Global instances
 config = Config()
@@ -160,7 +156,6 @@ def create_chat_window() -> None:
     top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
     top_frame.pack(fill=tk.X, pady=(0, 5))
     
-    style = config.config.get("widget_config", {}).get("style", {})
     button_style = config.config.get("widget_config", {}).get("button_style", {})
     option_menu_style = config.config.get("widget_config", {}).get("option_menu_style", {})
     api_menu_style = config.config.get("widget_config", {}).get("api_menu_style", {})
@@ -305,63 +300,6 @@ def create_chat_window() -> None:
         target_lang_var.trace_add("write", update_btn_appearance)
         update_btn_appearance()
     
-    # Quick reply frame
-    quick_reply_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-    quick_reply_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
-    
-    # Get quick replies from config
-    quick_replies = config.config.get("widget_config", {}).get("quick_reply_buttons", [])
-    
-    # Create two columns with equal width
-    left_column = ctk.CTkFrame(quick_reply_frame, fg_color="transparent")
-    left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
-    
-    # Add vertical divider
-    divider = ctk.CTkFrame(quick_reply_frame, width=2, fg_color="#E0E0E0")
-    divider.pack(side=tk.LEFT, fill=tk.Y, padx=0)
-    
-    right_column = ctk.CTkFrame(quick_reply_frame, fg_color="transparent")
-    right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
-    
-    # Get button colors from config
-    button_colors = config.config.get("widget_config", {}).get("quick_reply_colors", [
-        {"bg": "#4CAF50", "fg": "white", "hover": "#45A049"},  # Green
-        {"bg": "#2196F3", "fg": "white", "hover": "#1E88E5"},  # Blue
-        {"bg": "#FF9800", "fg": "white", "hover": "#F57C00"},  # Orange
-        {"bg": "#9C27B0", "fg": "white", "hover": "#8E24AA"},  # Purple
-        {"bg": "#00BCD4", "fg": "white", "hover": "#00ACC1"},  # Cyan
-        {"bg": "#F44336", "fg": "white", "hover": "#E53935"},  # Red
-        {"bg": "#8BC34A", "fg": "white", "hover": "#7CB342"},  # Light Green
-        {"bg": "#3F51B5", "fg": "white", "hover": "#3949AB"},  # Indigo
-        {"bg": "#E91E63", "fg": "white", "hover": "#D81B60"},  # Pink
-        {"bg": "#795548", "fg": "white", "hover": "#6D4C41"}   # Brown
-    ])
-    
-    # Create buttons in two columns
-    for i, reply in enumerate(quick_replies):
-        # Get color from config, use default if not found
-        color_index = i % len(button_colors)
-        style = button_colors[color_index]
-        
-        # Determine which column to place the button
-        column = left_column if i % 2 == 0 else right_column
-        
-        quick_reply_btn = ctk.CTkButton(
-            column,
-            text=reply.get("title", ""),
-            command=lambda r=reply: send_quick_reply(r.get("content", "")),
-            font=tuple(reply.get("font", ["Segoe UI", 9, "bold"])),
-            fg_color=style["bg"],
-            text_color=style["fg"],
-            hover_color=style["hover"],
-            corner_radius=8,
-            width=180,
-            height=35,
-            border_width=0,
-            anchor="w"  # Left align text
-        )
-        quick_reply_btn.pack(pady=2, fill="x", expand=True)
-    
     # Add resize handle at the bottom
     resize_handle = ctk.CTkFrame(main_frame, height=5, fg_color="#CCCCCC", cursor="sb_v_double_arrow")
     resize_handle.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
@@ -384,11 +322,6 @@ def create_chat_window() -> None:
         resize_handle.unbind("<ButtonRelease-1>")
     
     resize_handle.bind("<Button-1>", start_resize)
-    
-    def send_quick_reply(text):
-        window_state.sam_mini_chat_entry.delete("1.0", tk.END)
-        window_state.sam_mini_chat_entry.insert("1.0", text)
-        send_sam_mini_chat_message()
     
     def on_enter(event: tk.Event) -> str:
         if not event.state & 0x1:
@@ -679,9 +612,6 @@ def get_correct_telegram_hwnd() -> Optional[int]:
     user32.EnumWindows(enum_proc_c, 0)
     return hwnd_result
 
-def remove_think_tags(text: str) -> str:
-    return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
-
 def translate_text_for_dialogue_xai(text: str, source_lang: str = "auto", target_lang: str = "vi") -> Tuple[Optional[str], Optional[str]]:
     if not config.xai_api_key:
         return text, None
@@ -772,14 +702,19 @@ def translate_text_for_dialogue_chatgpt(text: str, source_lang: str = "auto", ta
 
 def translate_text_for_dialogue_llm(text: str, source_lang: str = "auto", target_lang: str = "vi") -> Tuple[Optional[str], Optional[str]]:
     if not config.llm_api_key:
-        return text, None
+        return None, "LLM API key not set"
         
-    ngrok_url = fetch_ngrok_url()
-    if not ngrok_url:
-        return text, None
+    if not config.firebase_url:
+        config.firebase_url = prompt_for_firebase_url()
+        if not config.firebase_url:
+            return None, "Firebase URL not set"
+            
+    url = fetch_ngrok_url(config.firebase_url)
+    if not url:
+        return None, "Failed to fetch ngrok URL"
         
     try:
-        api_url = f"{ngrok_url}/v1/chat/completions"
+        api_url = f"{url}/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {config.llm_api_key}"
@@ -813,25 +748,6 @@ def translate_text_for_dialogue_llm(text: str, source_lang: str = "auto", target
             
     except Exception as e:
         return text, None
-
-def fetch_ngrok_url() -> Optional[str]:
-    if not config.firebase_url:
-        config.firebase_url = prompt_for_firebase_url()
-        if not config.firebase_url:
-            return None
-            
-    try:
-        response = requests.get(config.firebase_url, timeout=5)
-        if response.status_code == 200:
-            url = response.json()
-            if url:
-                return url
-            else:
-                raise ValueError("Ngrok URL is empty")
-        else:
-            raise Exception(f"Failed to fetch ngrok URL: {response.status_code}")
-    except Exception as e:
-        return None
 
 def win_event_callback(hWinEventHook: int, event: int, hwnd: int, idObject: int, idChild: int, dwEventThread: int, dwmsEventTime: int) -> None:
     try:

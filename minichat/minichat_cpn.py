@@ -161,7 +161,7 @@ def create_chat_window() -> None:
         fg_color=window_config.get("bg", "#f0f0f0"),
         corner_radius=window_config.get("corner_radius", 0)
     )
-    main_frame.pack(fill=tk.BOTH, expand=True, padx=window_config.get("padx", 10), pady=window_config.get("pady", 5))
+    main_frame.pack(fill=tk.BOTH, expand=True, padx=window_config.get("padx", 2), pady=(window_config.get("pady", 2), 0))
     
     # Get all styles from config
     styles = config.config.get("widget_config", {}).get("styles", {})

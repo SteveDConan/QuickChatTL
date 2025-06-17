@@ -141,7 +141,7 @@ def initialize_chat_config(xai_api_key: str, chatgpt_api_key: str, llm_api_key: 
     # Get language settings from config
     language_config = config.config.get("language_config", {})
     config.my_lang_selection = language_config.get("my_lang", "vi")
-    config.target_lang_selection = language_config.get("target_lang", default_lang)
+    config.target_lang_selection = language_config.get("target_lang", "en")
     config.selected_api = language_config.get("selected_api", "XAI")
 
 def create_chat_window() -> None:
@@ -201,11 +201,11 @@ def create_chat_window() -> None:
     
     # Controls frame (API, Quit, Language)
     controls_frame = ctk.CTkFrame(main_frame, fg_color=window_config.get("controls_bg", "transparent"))
-    controls_frame.pack(fill=tk.X, pady=window_config.get("controls_pady", (0, 5)))
+    controls_frame.pack(fill=tk.X, pady=(0, 0))
     
     # Left side controls (Quick Lang, API, Language, Quit)
     left_controls = ctk.CTkFrame(controls_frame, fg_color=window_config.get("controls_bg", "transparent"))
-    left_controls.pack(side=tk.LEFT, padx=window_config.get("controls_padx", 5))
+    left_controls.pack(side=tk.LEFT, padx=0)
     
     # Initialize variables
     target_lang_var = tk.StringVar(value=config.lang_map.get(config.target_lang_selection, "Tiếng Anh"))
@@ -223,7 +223,7 @@ def create_chat_window() -> None:
     
     # Quick language selection frame
     quick_lang_frame = ctk.CTkFrame(left_controls, fg_color=window_config.get("quick_lang_frame_bg", "transparent"))
-    quick_lang_frame.pack(side=tk.LEFT, padx=window_config.get("quick_lang_frame_padx", 5))
+    quick_lang_frame.pack(side=tk.LEFT, padx=0)
     
     quick_languages = config.config.get("language_config", {}).get("quick_languages", ["en", "vi", "ja", "zh", "ko"])
     
@@ -238,7 +238,7 @@ def create_chat_window() -> None:
             quick_lang_frame,
             text=lang_name,
             command=lambda l=lang_code: on_quick_lang_click(l),
-            font=tuple(quick_lang_style.get("font", ["Segoe UI", 13])),
+            font=tuple(quick_lang_style.get("font", ["Segoe UI", 11])),
             fg_color=quick_lang_style.get("bg", "#E3F2FD"),
             text_color=quick_lang_style.get("fg", "#1976D2"),
             hover_color=quick_lang_style.get("hover", "#BBDEFB"),
@@ -249,7 +249,7 @@ def create_chat_window() -> None:
             width=quick_lang_style.get("width", 8),
             cursor=quick_lang_style.get("cursor", "hand2")
         )
-        btn.pack(side=tk.LEFT, padx=quick_lang_style.get("padx", 2))
+        btn.pack(side=tk.LEFT, padx=0)
         
         def update_btn_appearance(*args, btn=btn):
             if btn.cget("text") == target_lang_var.get():
@@ -279,11 +279,11 @@ def create_chat_window() -> None:
         button_color=api_menu_style.get("button_color", "#C8E6C9"),
         button_hover_color=api_menu_style.get("button_hover_color", "#1B5E20"),
         corner_radius=api_menu_style.get("corner_radius", 5),
-        width=api_menu_style.get("width", 60),
+        width=api_menu_style.get("width", 25),
         dynamic_resizing=True,
         height=api_menu_style.get("height", 15)
     )
-    api_menu.pack(side=tk.LEFT, padx=api_menu_style.get("padx", 5))
+    api_menu.pack(side=tk.LEFT, padx=0)
     
     lang_display_names = [config.lang_map[lang] for lang in config.all_lang_options if lang in config.lang_map]
     target_lang_menu = ctk.CTkOptionMenu(
@@ -297,11 +297,11 @@ def create_chat_window() -> None:
         button_color=option_menu_style.get("button_color", "#f5f5f5"),
         button_hover_color=option_menu_style.get("button_hover_color", "#007AFF"),
         corner_radius=option_menu_style.get("corner_radius", 5),
-        width=option_menu_style.get("width", 60),
+        width=option_menu_style.get("width", 25),
         dynamic_resizing=True,
         height=option_menu_style.get("height", 15)
     )
-    target_lang_menu.pack(side=tk.LEFT, padx=option_menu_style.get("padx", 5))
+    target_lang_menu.pack(side=tk.LEFT, padx=0)
     
     btn_quit = ctk.CTkButton(
         left_controls,
@@ -314,7 +314,7 @@ def create_chat_window() -> None:
         width=button_style.get("width", 10),
         height=button_style.get("height", 15)
     )
-    btn_quit.pack(side=tk.LEFT, padx=button_style.get("padx", 5))
+    btn_quit.pack(side=tk.LEFT, padx=0)
     
     def on_enter(event: tk.Event) -> str:
         if not event.state & 0x1:

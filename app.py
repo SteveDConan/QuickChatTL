@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
 from tkinter import messagebox
-from sam_translate.sam_translate import set_root, set_sam_mini_chat_globals, create_sam_mini_chat
+from minichat.minichat_cpn import initialize_root_window, initialize_chat_config, create_chat_window
 from config import load_config
 from ttkthemes import ThemedTk
 import customtkinter as ctk
@@ -38,10 +38,10 @@ class MiniChatApp:
             self.root.eval('tk::PlaceWindow . center')
             
             # Thiết lập root cho Sam Mini Chat
-            set_root(self.root)
+            initialize_root_window(self.root)
             
             # Thiết lập các biến toàn cục
-            set_sam_mini_chat_globals(
+            initialize_chat_config(
                 self.xai_api_key,
                 self.chatgpt_api_key,
                 self.llm_api_key,
@@ -49,7 +49,7 @@ class MiniChatApp:
             )
             
             # Tạo widget Sam Mini Chat
-            create_sam_mini_chat()
+            create_chat_window()
             
             # Thêm xử lý đóng cửa sổ
             self.root.protocol("WM_DELETE_WINDOW", self.on_closing)

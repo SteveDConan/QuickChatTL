@@ -219,7 +219,7 @@ def screenshot_comparison_worker(root, entry_path, lang, arrange_telegram_window
 
 # Cửa sổ Check Live
 def check_live_window(root, entry_path, lang, arrange_telegram_windows):
-    from APPXX import log_message, get_tdata_folders, config, save_config, arrange_width, arrange_height, send2trash
+    from app import log_message, get_tdata_folders, config, save_config, arrange_width, arrange_height, send2trash
     global cl_win, refresh_table_global
     cl_win = tk.Toplevel(root)
     cl_win.title(lang["check_live_title"])

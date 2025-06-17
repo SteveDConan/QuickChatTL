@@ -88,7 +88,7 @@ class QuickReply:
 config = Config()
 window_state = WindowState()
 
-def set_root(r: ThemedTk) -> None:
+def initialize_root_window(r: ThemedTk) -> None:
     window_state.root = r
 
 def prompt_for_firebase_url() -> Optional[str]:
@@ -124,7 +124,7 @@ def prompt_for_firebase_url() -> Optional[str]:
     dialog.wait_window()
     return config.firebase_url
 
-def set_sam_mini_chat_globals(xai_api_key: str, chatgpt_api_key: str, llm_api_key: str, default_lang: str) -> None:
+def initialize_chat_config(xai_api_key: str, chatgpt_api_key: str, llm_api_key: str, default_lang: str) -> None:
     if xai_api_key and xai_api_key.startswith("xai-"):
         config.xai_api_key = xai_api_key
     if chatgpt_api_key and chatgpt_api_key.startswith("sk-"):
@@ -137,7 +137,7 @@ def set_sam_mini_chat_globals(xai_api_key: str, chatgpt_api_key: str, llm_api_ke
     config.target_lang_selection = config.config.get('TARGET_LANG_SELECTION', config.target_lang_selection)
     config.selected_api = config.config.get('SELECTED_API', config.selected_api)
 
-def create_sam_mini_chat() -> None:
+def create_chat_window() -> None:
     if window_state.root is None:
         return
     
@@ -193,7 +193,7 @@ def create_sam_mini_chat() -> None:
     btn_quit = ctk.CTkButton(
         left_controls,
         text="Quit",
-        command=destroy_sam_mini_chat,
+        command=close_chat_window,
         fg_color="#FF3B30",
         hover_color="#cc2f26",
         font=tuple(button_style.get("font", ["Segoe UI", 10, "bold"])),
@@ -421,7 +421,7 @@ def create_sam_mini_chat() -> None:
     
     threading.Thread(target=update_sam_mini_chat_position, daemon=True).start()
 
-def destroy_sam_mini_chat() -> None:
+def close_chat_window() -> None:
     window_state.widget_sam_mini_chat_thread_running = False
     if window_state.sam_mini_chat_win is not None:
         try:

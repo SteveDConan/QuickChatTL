@@ -54,10 +54,19 @@ class Config:
         language_config = self.config.get("language_config", {})
         self.all_lang_options = language_config.get("available_languages", ["en", "vi"])
         self.lang_map = language_config.get("language_names", {"en": "Tiếng Anh", "vi": "Tiếng Việt"})
-        self.default_target_lang = "en"
-        self.my_lang_selection = self.config.get("MY_LANG_SELECTION", "vi")
-        self.target_lang_selection = self.config.get("TARGET_LANG_SELECTION", self.default_target_lang)
-        self.selected_api = self.config.get("SELECTED_API", "XAI")
+        
+        # Get Windows API constants from config
+        windows_api_config = self.config.get("windows_api", {}).get("constants", {})
+        self.HWND_TOPMOST = windows_api_config.get("HWND_TOPMOST", -1)
+        self.HWND_NOTOPMOST = windows_api_config.get("HWND_NOTOPMOST", -2)
+        self.SWP_NOMOVE = windows_api_config.get("SWP_NOMOVE", 0x0002)
+        self.SWP_NOSIZE = windows_api_config.get("SWP_NOSIZE", 0x0001)
+        self.SWP_NOACTIVATE = windows_api_config.get("SWP_NOACTIVATE", 0x0010)
+        self.EVENT_OBJECT_REORDER = windows_api_config.get("EVENT_OBJECT_REORDER", 0x8004)
+        self.EVENT_SYSTEM_FOREGROUND = windows_api_config.get("EVENT_SYSTEM_FOREGROUND", 0x0003)
+        self.WINEVENT_OUTOFCONTEXT = windows_api_config.get("WINEVENT_OUTOFCONTEXT", 0x0000)
+        self.WINEVENT_SKIPOWNTHREAD = windows_api_config.get("WINEVENT_SKIPOWNTHREAD", 0x0001)
+        self.WINEVENT_SKIPOWNPROCESS = windows_api_config.get("WINEVENT_SKIPOWNPROCESS", 0x0002)
 
 class WindowState:
     def __init__(self):
@@ -91,20 +100,21 @@ def prompt_for_firebase_url() -> Optional[str]:
     if config.firebase_url:
         return config.firebase_url
 
+    dialog_config = config.config.get("dialog_config", {}).get("firebase_url", {})
     dialog = tk.Toplevel(window_state.root)
-    dialog.title("Nhập Firebase URL")
-    dialog.geometry("400x150")
+    dialog.title(dialog_config.get("title", "Nhập Firebase URL"))
+    dialog.geometry(dialog_config.get("geometry", "400x150"))
     dialog.attributes("-topmost", True)
     dialog.grab_set()
 
-    tk.Label(dialog, text="Vui lòng nhập Firebase URL:").pack(pady=10)
-    url_entry = tk.Entry(dialog, width=50)
-    url_entry.pack(pady=5)
+    tk.Label(dialog, text=dialog_config.get("label_text", "Vui lòng nhập Firebase URL:")).pack(pady=dialog_config.get("label_pady", 10))
+    url_entry = tk.Entry(dialog, width=dialog_config.get("entry_width", 50))
+    url_entry.pack(pady=dialog_config.get("entry_pady", 5))
 
     def save_url() -> None:
         url = url_entry.get().strip()
         if not url:
-            messagebox.showerror("Lỗi", "URL không được để trống!")
+            messagebox.showerror(dialog_config.get("error_title", "Lỗi"), dialog_config.get("error_empty", "URL không được để trống!"))
             return
 
         try:
@@ -114,9 +124,9 @@ def prompt_for_firebase_url() -> Optional[str]:
                 json.dump(config.config, f, ensure_ascii=False, indent=4)
             dialog.destroy()
         except Exception as e:
-            messagebox.showerror("Lỗi", f"Không thể lưu URL: {e}")
+            messagebox.showerror(dialog_config.get("error_title", "Lỗi"), dialog_config.get("error_save", "Không thể lưu URL: {}").format(e))
 
-    tk.Button(dialog, text="OK", command=save_url).pack(pady=10)
+    tk.Button(dialog, text=dialog_config.get("button_text", "OK"), command=save_url).pack(pady=dialog_config.get("button_pady", 10))
     dialog.wait_window()
     return config.firebase_url
 
@@ -127,11 +137,12 @@ def initialize_chat_config(xai_api_key: str, chatgpt_api_key: str, llm_api_key: 
         config.chatgpt_api_key = chatgpt_api_key
     if llm_api_key and llm_api_key.startswith("llm-"):
         config.llm_api_key = llm_api_key
-    config.default_target_lang = default_lang
     
-    config.my_lang_selection = config.config.get('MY_LANG_SELECTION', config.my_lang_selection)
-    config.target_lang_selection = config.config.get('TARGET_LANG_SELECTION', config.target_lang_selection)
-    config.selected_api = config.config.get('SELECTED_API', config.selected_api)
+    # Get language settings from config
+    language_config = config.config.get("language_config", {})
+    config.my_lang_selection = language_config.get("my_lang", "vi")
+    config.target_lang_selection = language_config.get("target_lang", default_lang)
+    config.selected_api = language_config.get("selected_api", "XAI")
 
 def create_chat_window() -> None:
     if window_state.root is None:
@@ -148,22 +159,25 @@ def create_chat_window() -> None:
     main_frame = ctk.CTkFrame(
         window_state.sam_mini_chat_win,
         fg_color=window_config.get("bg", "#f0f0f0"),
-        corner_radius=0
+        corner_radius=window_config.get("corner_radius", 0)
     )
     main_frame.pack(fill=tk.BOTH, expand=True, padx=window_config.get("padx", 10), pady=window_config.get("pady", 5))
     
     # Top row frame
-    top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-    top_frame.pack(fill=tk.X, pady=(0, 5))
+    top_frame = ctk.CTkFrame(main_frame, fg_color=window_config.get("top_frame_bg", "transparent"))
+    top_frame.pack(fill=tk.X, pady=window_config.get("top_frame_pady", (0, 5)))
     
-    button_style = config.config.get("widget_config", {}).get("button_style", {})
-    option_menu_style = config.config.get("widget_config", {}).get("option_menu_style", {})
-    api_menu_style = config.config.get("widget_config", {}).get("api_menu_style", {})
-    text_entry_style = config.config.get("widget_config", {}).get("text_entry_style", {})
+    # Get all styles from config
+    styles = config.config.get("widget_config", {}).get("styles", {})
+    button_style = styles.get("button", {})
+    option_menu_style = styles.get("option_menu", {})
+    api_menu_style = styles.get("api_menu", {})
+    text_entry_style = styles.get("text_entry", {})
+    quick_lang_style = styles.get("quick_language", {})
     
     # Left controls frame (API, Quit, Language)
-    left_controls = ctk.CTkFrame(top_frame, fg_color="transparent")
-    left_controls.pack(side=tk.LEFT, padx=5)
+    left_controls = ctk.CTkFrame(top_frame, fg_color=window_config.get("controls_bg", "transparent"))
+    left_controls.pack(side=tk.LEFT, padx=window_config.get("controls_padx", 5))
     
     api_var = tk.StringVar(value=config.selected_api)
     
@@ -172,30 +186,30 @@ def create_chat_window() -> None:
     
     api_menu = ctk.CTkOptionMenu(
         left_controls,
-        values=["XAI", "ChatGPT", "LLM"],
+        values=styles.get("api_values", ["XAI", "ChatGPT", "LLM"]),
         variable=api_var,
         command=update_api,
         font=tuple(api_menu_style.get("font", ["Segoe UI", 10, "bold"])),
         fg_color=api_menu_style.get("bg", "#E8F5E9"),
         text_color=api_menu_style.get("fg", "#2E7D32"),
-        button_color=api_menu_style.get("activebackground", "#C8E6C9"),
-        button_hover_color=api_menu_style.get("activeforeground", "#1B5E20"),
-        corner_radius=5,
+        button_color=api_menu_style.get("button_color", "#C8E6C9"),
+        button_hover_color=api_menu_style.get("button_hover_color", "#1B5E20"),
+        corner_radius=api_menu_style.get("corner_radius", 5),
         width=api_menu_style.get("width", 80)
     )
-    api_menu.pack(side=tk.LEFT, padx=5)
+    api_menu.pack(side=tk.LEFT, padx=api_menu_style.get("padx", 5))
     
     btn_quit = ctk.CTkButton(
         left_controls,
-        text="Quit",
+        text=button_style.get("quit_text", "Quit"),
         command=close_chat_window,
-        fg_color="#FF3B30",
-        hover_color="#cc2f26",
         font=tuple(button_style.get("font", ["Segoe UI", 10, "bold"])),
-        corner_radius=5,
+        fg_color=button_style.get("quit_bg", "#FF3B30"),
+        hover_color=button_style.get("quit_hover", "#cc2f26"),
+        corner_radius=button_style.get("corner_radius", 5),
         width=button_style.get("width", 10)
     )
-    btn_quit.pack(side=tk.LEFT, padx=5)
+    btn_quit.pack(side=tk.LEFT, padx=button_style.get("padx", 5))
     
     target_lang_var = tk.StringVar(value=config.lang_map.get(config.target_lang_selection, "Tiếng Anh"))
     
@@ -215,44 +229,43 @@ def create_chat_window() -> None:
         font=tuple(option_menu_style.get("font", ["Segoe UI", 10])),
         fg_color=option_menu_style.get("bg", "#ffffff"),
         text_color=option_menu_style.get("fg", "#333333"),
-        button_color=option_menu_style.get("activebackground", "#f5f5f5"),
-        button_hover_color=option_menu_style.get("activeforeground", "#007AFF"),
-        corner_radius=5
+        button_color=option_menu_style.get("button_color", "#f5f5f5"),
+        button_hover_color=option_menu_style.get("button_hover_color", "#007AFF"),
+        corner_radius=option_menu_style.get("corner_radius", 5)
     )
-    target_lang_menu.pack(side=tk.LEFT, padx=5)
+    target_lang_menu.pack(side=tk.LEFT, padx=option_menu_style.get("padx", 5))
     
     # Input frame
-    input_frame = ctk.CTkFrame(top_frame, fg_color="transparent")
-    input_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+    input_frame = ctk.CTkFrame(top_frame, fg_color=window_config.get("input_frame_bg", "transparent"))
+    input_frame.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=window_config.get("input_frame_padx", 5))
     
     window_state.sam_mini_chat_entry = ctk.CTkTextbox(
         input_frame,
         font=tuple(text_entry_style.get("font", ["Segoe UI", 11])),
         fg_color=text_entry_style.get("bg", "#ffffff"),
         text_color=text_entry_style.get("fg", "#333333"),
-        border_width=text_entry_style.get("borderwidth", 1),
-        corner_radius=5,
+        border_width=text_entry_style.get("border_width", 1),
+        corner_radius=text_entry_style.get("corner_radius", 5),
         height=text_entry_style.get("height", 1) * 20
     )
     window_state.sam_mini_chat_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
     
     window_state.sam_mini_chat_btn_send = ctk.CTkButton(
         input_frame,
-        text="Send",
+        text="➤",
         command=send_sam_mini_chat_message,
         font=tuple(button_style.get("font", ["Segoe UI", 10, "bold"])),
-        fg_color=button_style.get("bg", "#007AFF"),
-        hover_color="#0056b3",
-        corner_radius=5,
+        fg_color=button_style.get("send_bg", "#007AFF"),
+        hover_color=button_style.get("send_hover", "#0056b3"),
+        corner_radius=button_style.get("corner_radius", 5),
         width=button_style.get("width", 10)
     )
-    window_state.sam_mini_chat_btn_send.pack(side=tk.LEFT, padx=5)
+    window_state.sam_mini_chat_btn_send.pack(side=tk.LEFT, padx=button_style.get("padx", 5))
     
     # Quick language selection frame
-    quick_lang_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-    quick_lang_frame.pack(fill=tk.X, pady=(0, 5))
+    quick_lang_frame = ctk.CTkFrame(main_frame, fg_color=window_config.get("quick_lang_frame_bg", "transparent"))
+    quick_lang_frame.pack(fill=tk.X, pady=window_config.get("quick_lang_frame_pady", (0, 5)))
     
-    quick_lang_style = config.config.get("language_config", {}).get("quick_language_style", {})
     quick_languages = config.config.get("language_config", {}).get("quick_languages", ["en", "vi", "ja", "zh", "ko"])
     
     def on_quick_lang_click(lang_code: str) -> None:
@@ -261,8 +274,8 @@ def create_chat_window() -> None:
         update_target_lang(lang_name)
     
     # Create a container frame for the buttons that aligns with input_frame
-    lang_buttons_frame = ctk.CTkFrame(quick_lang_frame, fg_color="transparent")
-    lang_buttons_frame.pack(side=tk.LEFT, padx=(310, 0))  # Set left padding to 200px
+    lang_buttons_frame = ctk.CTkFrame(quick_lang_frame, fg_color=window_config.get("lang_buttons_frame_bg", "transparent"))
+    lang_buttons_frame.pack(side=tk.LEFT, padx=window_config.get("lang_buttons_frame_padx", (310, 0)))
     
     for lang_code in quick_languages:
         lang_name = config.lang_map.get(lang_code, lang_code)
@@ -270,58 +283,35 @@ def create_chat_window() -> None:
             lang_buttons_frame,
             text=lang_name,
             command=lambda l=lang_code: on_quick_lang_click(l),
-            font=tuple(quick_lang_style.get("button", {}).get("font", ["Segoe UI", 13])),
-            fg_color=quick_lang_style.get("button", {}).get("fg_color", "#E3F2FD"),
-            text_color=quick_lang_style.get("button", {}).get("text_color", "#1976D2"),
-            hover_color=quick_lang_style.get("button", {}).get("hover_color", "#BBDEFB"),
-            corner_radius=quick_lang_style.get("button", {}).get("corner_radius", 3),
-            border_width=quick_lang_style.get("button", {}).get("border_width", 1),
-            border_color=quick_lang_style.get("button", {}).get("border_color", "#90CAF9"),
-            height=quick_lang_style.get("button", {}).get("height", 1) * 20,
-            width=quick_lang_style.get("button", {}).get("width", 8),
-            cursor=quick_lang_style.get("button", {}).get("cursor", "hand2")
+            font=tuple(quick_lang_style.get("font", ["Segoe UI", 13])),
+            fg_color=quick_lang_style.get("bg", "#E3F2FD"),
+            text_color=quick_lang_style.get("fg", "#1976D2"),
+            hover_color=quick_lang_style.get("hover", "#BBDEFB"),
+            corner_radius=quick_lang_style.get("corner_radius", 3),
+            border_width=quick_lang_style.get("border_width", 1),
+            border_color=quick_lang_style.get("border_color", "#90CAF9"),
+            height=quick_lang_style.get("height", 1) * 20,
+            width=quick_lang_style.get("width", 8),
+            cursor=quick_lang_style.get("cursor", "hand2")
         )
-        btn.pack(side=tk.LEFT, padx=2)
+        btn.pack(side=tk.LEFT, padx=quick_lang_style.get("padx", 2))
         
         def update_btn_appearance(*args, btn=btn):
             if btn.cget("text") == target_lang_var.get():
                 btn.configure(
-                    fg_color=quick_lang_style.get("button", {}).get("selected_color", "#2196F3"),
-                    text_color=quick_lang_style.get("button", {}).get("selected_text_color", "white"),
-                    border_color=quick_lang_style.get("button", {}).get("selected_border_color", "#1976D2")
+                    fg_color=quick_lang_style.get("selected_bg", "#2196F3"),
+                    text_color=quick_lang_style.get("selected_fg", "white"),
+                    border_color=quick_lang_style.get("selected_border", "#1976D2")
                 )
             else:
                 btn.configure(
-                    fg_color=quick_lang_style.get("button", {}).get("fg_color", "#E3F2FD"),
-                    text_color=quick_lang_style.get("button", {}).get("text_color", "#1976D2"),
-                    border_color=quick_lang_style.get("button", {}).get("border_color", "#90CAF9")
+                    fg_color=quick_lang_style.get("bg", "#E3F2FD"),
+                    text_color=quick_lang_style.get("fg", "#1976D2"),
+                    border_color=quick_lang_style.get("border_color", "#90CAF9")
                 )
         
         target_lang_var.trace_add("write", update_btn_appearance)
         update_btn_appearance()
-    
-    # Add resize handle at the bottom
-    resize_handle = ctk.CTkFrame(main_frame, height=5, fg_color="#CCCCCC", cursor="sb_v_double_arrow")
-    resize_handle.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
-    
-    def start_resize(event):
-        resize_handle.y_start = event.y_root
-        resize_handle.win_height = window_state.sam_mini_chat_win.winfo_height()
-        resize_handle.bind("<B1-Motion>", do_resize)
-        resize_handle.bind("<ButtonRelease-1>", stop_resize)
-    
-    def do_resize(event):
-        delta_y = event.y_root - resize_handle.y_start
-        new_height = resize_handle.win_height + delta_y
-        if new_height >= 100:  # Minimum height
-            window_state.sam_mini_chat_win.geometry(f"{window_state.sam_mini_chat_win.winfo_width()}x{new_height}")
-            config.widget_height = new_height
-    
-    def stop_resize(event):
-        resize_handle.unbind("<B1-Motion>")
-        resize_handle.unbind("<ButtonRelease-1>")
-    
-    resize_handle.bind("<Button-1>", start_resize)
     
     def on_enter(event: tk.Event) -> str:
         if not event.state & 0x1:
@@ -378,12 +368,12 @@ def sync_z_order_with_telegram(telegram_hwnd: int, widget_hwnd: int) -> None:
         hwnd_above = user32.GetWindow(telegram_hwnd, 3)
         if hwnd_above:
             user32.SetWindowPos(widget_hwnd, hwnd_above, 0, 0, 0, 0, 
-                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+                              config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
         else:
-            user32.SetWindowPos(widget_hwnd, HWND_TOPMOST, 0, 0, 0, 0, 
-                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
-            user32.SetWindowPos(widget_hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, 
-                              SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+            user32.SetWindowPos(widget_hwnd, config.HWND_TOPMOST, 0, 0, 0, 0, 
+                              config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
+            user32.SetWindowPos(widget_hwnd, config.HWND_NOTOPMOST, 0, 0, 0, 0, 
+                              config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
     except Exception as e:
         print(f"Error syncing Z-order: {e}")
 
@@ -537,11 +527,11 @@ def send_sam_mini_chat_message() -> None:
                 # Success animation
                 success_config = animation.get("success", {})
                 window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.configure(
-                    text=success_config.get("text", "✓ Sent"),
+                    text="✓ Sent",
                     fg_color=success_config.get("bg", "#4CAF50")
                 ))
                 window_state.root.after(success_delay, lambda: window_state.sam_mini_chat_btn_send.configure(
-                    text="Send",
+                    text="➤",
                     fg_color=button_style.get("bg", "#007AFF")
                 ))
                 window_state.sam_mini_chat_entry.focus_force()
@@ -555,11 +545,11 @@ def send_sam_mini_chat_message() -> None:
             # Error animation
             error_config = animation.get("error", {})
             window_state.root.after(0, lambda: window_state.sam_mini_chat_btn_send.configure(
-                text=error_config.get("text", "✗ Error"),
+                text="✗ Error",
                 fg_color=error_config.get("bg", "#FF3B30")
             ))
             window_state.root.after(error_delay, lambda: window_state.sam_mini_chat_btn_send.configure(
-                text="Send",
+                text="➤",
                 fg_color=button_style.get("bg", "#007AFF")
             ))
             window_state.root.after(0, lambda: window_state.sam_mini_chat_entry.delete("1.0", tk.END))
@@ -767,17 +757,16 @@ def setup_z_order_monitoring() -> None:
         
         window_state.z_order_callback = WinEventProcType(win_event_callback)
         
-        windows_api_config = config.config.get("windows_api", {}).get("constants", {})
         user32.SetWinEventHook(
-            windows_api_config.get("EVENT_OBJECT_REORDER", 32772),
-            windows_api_config.get("EVENT_SYSTEM_FOREGROUND", 3),
+            config.EVENT_OBJECT_REORDER,
+            config.EVENT_SYSTEM_FOREGROUND,
             0,
             window_state.z_order_callback,
             0,
             0,
-            windows_api_config.get("WINEVENT_OUTOFCONTEXT", 0) | 
-            windows_api_config.get("WINEVENT_SKIPOWNTHREAD", 1) | 
-            windows_api_config.get("WINEVENT_SKIPOWNPROCESS", 2)
+            config.WINEVENT_OUTOFCONTEXT | 
+            config.WINEVENT_SKIPOWNTHREAD | 
+            config.WINEVENT_SKIPOWNPROCESS
         )
     except Exception as e:
         print(f"Error setting up Z-order monitoring: {e}")

@@ -368,15 +368,9 @@ def close_chat_window() -> None:
 
 def sync_z_order_with_telegram(telegram_hwnd: int, widget_hwnd: int) -> None:
     try:
-        hwnd_above = user32.GetWindow(telegram_hwnd, 3)
-        if hwnd_above:
-            user32.SetWindowPos(widget_hwnd, hwnd_above, 0, 0, 0, 0, 
-                              config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
-        else:
-            user32.SetWindowPos(widget_hwnd, config.HWND_TOPMOST, 0, 0, 0, 0, 
-                              config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
-            user32.SetWindowPos(widget_hwnd, config.HWND_NOTOPMOST, 0, 0, 0, 0, 
-                              config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
+        # Always set the widget to be topmost
+        user32.SetWindowPos(widget_hwnd, config.HWND_TOPMOST, 0, 0, 0, 0, 
+                          config.SWP_NOMOVE | config.SWP_NOSIZE | config.SWP_NOACTIVATE)
     except Exception as e:
         print(f"Error syncing Z-order: {e}")
 

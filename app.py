@@ -55,6 +55,11 @@ class MiniChatApp:
             self.root.title("Mini Chat")
             self.root.eval('tk::PlaceWindow . center')
             
+            # Set window to always be on top
+            self.root.attributes('-topmost', True)
+            self.root.lift()
+            self.root.attributes('-topmost', True)  # Keep it on top
+            
             # Initialize components
             initialize_root_window(self.root)
             initialize_chat_config(

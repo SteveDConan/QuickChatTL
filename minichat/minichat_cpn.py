@@ -403,42 +403,42 @@ def create_chat_window() -> None:
         left_controls,
         textvariable=api_var,
         command=open_api_dialog,
-        font=("Segoe UI", 10, "bold"),
+        font=("Segoe UI", 12, "bold"),
         fg_color="#E8F5E9",
         text_color="#2E7D32",
         hover_color="#C8E6C9",
         border_color="#4CAF50",
         border_width=1,
         corner_radius=8,
-        width=35,
-        height=20,
+        width=40,
+        height=28,
     )
     api_btn.pack(side=tk.LEFT, padx=(0,2))
     lang_btn = ctk.CTkButton(
         left_controls,
         textvariable=target_lang_var,
         command=open_lang_dialog,
-        font=("Segoe UI", 10, "bold"),
+        font=("Segoe UI", 12, "bold"),
         fg_color="#E3F2FD",
         text_color="#1976D2",
         hover_color="#BBDEFB",
         border_color="#2196F3",
         border_width=1,
         corner_radius=8,
-        width=35,
-        height=20,
+        width=40,
+        height=28,
     )
     lang_btn.pack(side=tk.LEFT, padx=(0,2))
     btn_quit = ctk.CTkButton(
         left_controls,
         text="×",
         command=close_chat_window,
-        font=tuple(button_style.get("font", ["Segoe UI", 12, "bold"])),
+        font=("Segoe UI", 14, "bold"),
         fg_color=button_style.get("quit_bg", "#FF3B30"),
         hover_color=button_style.get("quit_hover", "#cc2f26"),
         corner_radius=button_style.get("corner_radius", 5),
-        width=button_style.get("width", 10),
-        height=button_style.get("height", 15),
+        width=15,
+        height=28,
     )
     btn_quit.pack(side=tk.LEFT, padx=(0,2))
 

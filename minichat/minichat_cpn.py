@@ -218,12 +218,12 @@ def create_chat_window() -> None:
 
     window_state.sam_mini_chat_entry = ctk.CTkTextbox(
         input_frame,
-        font=tuple(text_entry_style.get("font", ["Segoe UI", 11])),
+        font=tuple(text_entry_style.get("font", ["Segoe UI", 16])),
         fg_color=text_entry_style.get("bg", "#ffffff"),
         text_color=text_entry_style.get("fg", "#333333"),
         border_width=text_entry_style.get("border_width", 1),
         corner_radius=text_entry_style.get("corner_radius", 5),
-        height=text_entry_style.get("height", 1) * 20,
+        height=text_entry_style.get("height", 1) * 32,
     )
     window_state.sam_mini_chat_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
@@ -231,12 +231,12 @@ def create_chat_window() -> None:
         input_frame,
         text="➤",
         command=send_sam_mini_chat_message,
-        font=tuple(button_style.get("font", ["Segoe UI", 10, "bold"])),
+        font=("Segoe UI", 16, "bold"),
         fg_color=button_style.get("send_bg", "#007AFF"),
         hover_color=button_style.get("send_hover", "#0056b3"),
         corner_radius=button_style.get("corner_radius", 5),
-        width=button_style.get("width", 10),
-        height=button_style.get("height", 15),
+        width=40,
+        height=32,
     )
     window_state.sam_mini_chat_btn_send.pack(
         side=tk.LEFT, padx=button_style.get("padx", 5)
@@ -294,15 +294,15 @@ def create_chat_window() -> None:
             quick_lang_frame,
             text=lang_name,
             command=lambda l=lang_code: on_quick_lang_click(l),
-            font=tuple(quick_lang_style.get("font", ["Segoe UI", 11])),
+            font=tuple(quick_lang_style.get("font", ["Segoe UI", 13])),
             fg_color=quick_lang_style.get("bg", "#E3F2FD"),
             text_color=quick_lang_style.get("fg", "#1976D2"),
             hover_color=quick_lang_style.get("hover", "#BBDEFB"),
-            corner_radius=quick_lang_style.get("corner_radius", 3),
+            corner_radius=quick_lang_style.get("corner_radius", 6),
             border_width=quick_lang_style.get("border_width", 1),
             border_color=quick_lang_style.get("border_color", "#90CAF9"),
-            height=quick_lang_style.get("height", 1) * 20,
-            width=quick_lang_style.get("width", 8),
+            height=32,
+            width=quick_lang_style.get("width", 12),
             cursor=quick_lang_style.get("cursor", "hand2"),
         )
         btn.pack(side=tk.LEFT, padx=0)
@@ -340,7 +340,7 @@ def create_chat_window() -> None:
         dialog.geometry(f"{w}x{h}+{x}+{y}")
         current_api = api_var.get()
         for api in apis:
-            is_selected = (api == current_api)
+            is_selected = api == current_api
             btn = ctk.CTkButton(
                 dialog,
                 text=api,
@@ -351,17 +351,21 @@ def create_chat_window() -> None:
                 border_color="#1B5E20" if is_selected else "#C8E6C9",
                 border_width=2 if is_selected else 1,
                 font=("Segoe UI", 13, "bold" if is_selected else "normal"),
-                command=lambda a=api: select_api(a, dialog)
+                command=lambda a=api: select_api(a, dialog),
             )
             btn.pack(pady=5, padx=10, fill="x")
+
     # --- Dialog chọn ngôn ngữ (sửa lại lấy từ config, hiển thị giữa màn hình, style nổi bật) ---
     def select_lang(lang, dialog):
         target_lang_var.set(lang)
         update_target_lang(lang)
         dialog.destroy()
+
     def open_lang_dialog():
         lang_cfg = config.config.get("language_config", {})
-        available_langs = lang_cfg.get("available_languages", list(config.lang_map.keys()))
+        available_langs = lang_cfg.get(
+            "available_languages", list(config.lang_map.keys())
+        )
         lang_names = lang_cfg.get("language_names", config.lang_map)
         # Tạo dialog
         dialog = tk.Toplevel(window_state.sam_mini_chat_win)
@@ -380,7 +384,7 @@ def create_chat_window() -> None:
         current_lang = target_lang_var.get()
         for lang_code in available_langs:
             lang_label = lang_names.get(lang_code, lang_code)
-            is_selected = (lang_label == current_lang)
+            is_selected = lang_label == current_lang
             btn = ctk.CTkButton(
                 dialog,
                 text=lang_label,
@@ -391,56 +395,58 @@ def create_chat_window() -> None:
                 border_color="#1976D2" if is_selected else "#90CAF9",
                 border_width=2 if is_selected else 1,
                 font=("Segoe UI", 13, "bold" if is_selected else "normal"),
-                command=lambda l=lang_label: select_lang(l, dialog)
+                command=lambda l=lang_label: select_lang(l, dialog),
             )
             btn.pack(pady=4, padx=10, fill="x")
+
     def select_api(api, dialog):
         api_var.set(api)
         update_api(api)
         dialog.destroy()
+
     # --- UI chính: Thêm label hiển thị API/ngôn ngữ đang chọn ---
     api_btn = ctk.CTkButton(
         left_controls,
         textvariable=api_var,
         command=open_api_dialog,
-        font=("Segoe UI", 12, "bold"),
+        font=("Segoe UI", 14, "bold"),
         fg_color="#E8F5E9",
         text_color="#2E7D32",
         hover_color="#C8E6C9",
         border_color="#4CAF50",
         border_width=1,
         corner_radius=8,
-        width=40,
-        height=28,
+        width=45,
+        height=32,
     )
-    api_btn.pack(side=tk.LEFT, padx=(0,2))
+    api_btn.pack(side=tk.LEFT, padx=(0, 2))
     lang_btn = ctk.CTkButton(
         left_controls,
         textvariable=target_lang_var,
         command=open_lang_dialog,
-        font=("Segoe UI", 12, "bold"),
+        font=("Segoe UI", 14, "bold"),
         fg_color="#E3F2FD",
         text_color="#1976D2",
         hover_color="#BBDEFB",
         border_color="#2196F3",
         border_width=1,
         corner_radius=8,
-        width=40,
-        height=28,
+        width=45,
+        height=32,
     )
-    lang_btn.pack(side=tk.LEFT, padx=(0,2))
+    lang_btn.pack(side=tk.LEFT, padx=(0, 2))
     btn_quit = ctk.CTkButton(
         left_controls,
         text="×",
         command=close_chat_window,
-        font=("Segoe UI", 14, "bold"),
+        font=("Segoe UI", 16, "bold"),
         fg_color=button_style.get("quit_bg", "#FF3B30"),
         hover_color=button_style.get("quit_hover", "#cc2f26"),
         corner_radius=button_style.get("corner_radius", 5),
         width=15,
-        height=28,
+        height=32,
     )
-    btn_quit.pack(side=tk.LEFT, padx=(0,2))
+    btn_quit.pack(side=tk.LEFT, padx=(0, 2))
 
     def on_enter(event: tk.Event) -> str:
         if not event.state & 0x1:
@@ -784,16 +790,19 @@ def translate_text_for_dialogue_xai(
             f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
             f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
             f"Bối cảnh: Bạn là một tư vấn viên chuyên nghiệp, đang cung cấp dịch vụ và cần giao tiếp chính xác với khách hàng bằng ngôn ngữ đích. "
-            f"Nhiệm vụ: dịch chính xác nội dung sau sang {lang_name}, đảm bảo:\n"
+            f"Nhiệm vụ: dịch đúng phần nội dung nằm giữa các ký hiệu <<<BEGIN>>> và <<<END>>> sang {lang_name}, đảm bảo:\n"
             f"- Ngữ pháp hoàn chỉnh, từ vựng phù hợp, không thiếu/khuyết ý.\n"
             f"- Giữ nguyên cấu trúc câu, định dạng (xuống dòng, danh sách dấu đầu dòng, ký tự đặc biệt…) nếu có.\n"
             f"- Giọng điệu thân thiện nhưng vẫn lịch sự, tôn trọng, phù hợp với văn hóa bản địa của khách hàng.\n"
             f"- Xử lý thành ngữ, tục ngữ hay cách diễn đạt đặc thù sao cho tự nhiên trong ngôn ngữ đích.\n"
             f"- Nếu có thuật ngữ chuyên ngành hoặc tên sản phẩm/dịch vụ, giữ hoặc chú ý phiên âm/phương án thể hiện phù hợp.\n"
-            f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn hoặc ký tự bổ sung nào khác**. '
+            f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn,không kèm ký hiệu <<<BEGIN>>> hoặc <<<END>>> hoặc bất kỳ ký tự/thẻ, ký tự bổ sung nào khác**. '
             f" Nếu nội dung dịch có dấu ngoặc kép nội bộ do cấu trúc ngôn ngữ đích yêu cầu, chỉ giữ đúng vị trí của dấu đó, không thêm dấu bao bên ngoài.\n"
             f"- Không thêm bình luận, giải thích hay chú giải nào khác; chỉ output đúng văn bản dịch.\n"
-            f"Tin nhắn cần dịch: {text}"
+            f"Đoạn cần dịch:\n"
+            f"<<<BEGIN>>>\n"
+            f"{text}\n"
+            f"<<<END>>>"
         )
 
         headers = {
@@ -841,16 +850,19 @@ def translate_text_for_dialogue_chatgpt(
             f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
             f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
             f"Bối cảnh: Bạn là một tư vấn viên chuyên nghiệp, đang cung cấp dịch vụ và cần giao tiếp chính xác với khách hàng bằng ngôn ngữ đích. "
-            f"Nhiệm vụ: dịch chính xác nội dung sau sang {lang_name}, đảm bảo:\n"
+            f"Nhiệm vụ: dịch đúng phần nội dung nằm giữa các ký hiệu <<<BEGIN>>> và <<<END>>> sang {lang_name}, đảm bảo:\n"
             f"- Ngữ pháp hoàn chỉnh, từ vựng phù hợp, không thiếu/khuyết ý.\n"
             f"- Giữ nguyên cấu trúc câu, định dạng (xuống dòng, danh sách dấu đầu dòng, ký tự đặc biệt…) nếu có.\n"
             f"- Giọng điệu thân thiện nhưng vẫn lịch sự, tôn trọng, phù hợp với văn hóa bản địa của khách hàng.\n"
             f"- Xử lý thành ngữ, tục ngữ hay cách diễn đạt đặc thù sao cho tự nhiên trong ngôn ngữ đích.\n"
             f"- Nếu có thuật ngữ chuyên ngành hoặc tên sản phẩm/dịch vụ, giữ hoặc chú ý phiên âm/phương án thể hiện phù hợp.\n"
-            f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn hoặc ký tự bổ sung nào khác**. '
+            f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn,không kèm ký hiệu <<<BEGIN>>> hoặc <<<END>>> hoặc bất kỳ ký tự/thẻ, ký tự bổ sung nào khác**. '
             f" Nếu nội dung dịch có dấu ngoặc kép nội bộ do cấu trúc ngôn ngữ đích yêu cầu, chỉ giữ đúng vị trí của dấu đó, không thêm dấu bao bên ngoài.\n"
             f"- Không thêm bình luận, giải thích hay chú giải nào khác; chỉ output đúng văn bản dịch.\n"
-            f"Tin nhắn cần dịch: {text}"
+            f"Đoạn cần dịch:\n"
+            f"<<<BEGIN>>>\n"
+            f"{text}\n"
+            f"<<<END>>>"
         )
 
         headers = {
@@ -917,16 +929,19 @@ def translate_text_for_dialogue_llm(
             f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
             f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
             f"Bối cảnh: Bạn là một tư vấn viên chuyên nghiệp, đang cung cấp dịch vụ và cần giao tiếp chính xác với khách hàng bằng ngôn ngữ đích. "
-            f"Nhiệm vụ: dịch chính xác nội dung sau sang {lang_name}, đảm bảo:\n"
+            f"Nhiệm vụ: dịch đúng phần nội dung nằm giữa các ký hiệu <<<BEGIN>>> và <<<END>>> sang {lang_name}, đảm bảo:\n"
             f"- Ngữ pháp hoàn chỉnh, từ vựng phù hợp, không thiếu/khuyết ý.\n"
             f"- Giữ nguyên cấu trúc câu, định dạng (xuống dòng, danh sách dấu đầu dòng, ký tự đặc biệt…) nếu có.\n"
             f"- Giọng điệu thân thiện nhưng vẫn lịch sự, tôn trọng, phù hợp với văn hóa bản địa của khách hàng.\n"
             f"- Xử lý thành ngữ, tục ngữ hay cách diễn đạt đặc thù sao cho tự nhiên trong ngôn ngữ đích.\n"
             f"- Nếu có thuật ngữ chuyên ngành hoặc tên sản phẩm/dịch vụ, giữ hoặc chú ý phiên âm/phương án thể hiện phù hợp.\n"
-            f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn hoặc ký tự bổ sung nào khác**. '
+            f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn,không kèm ký hiệu <<<BEGIN>>> hoặc <<<END>>> hoặc bất kỳ ký tự/thẻ, ký tự bổ sung nào khác**. '
             f" Nếu nội dung dịch có dấu ngoặc kép nội bộ do cấu trúc ngôn ngữ đích yêu cầu, chỉ giữ đúng vị trí của dấu đó, không thêm dấu bao bên ngoài.\n"
             f"- Không thêm bình luận, giải thích hay chú giải nào khác; chỉ output đúng văn bản dịch.\n"
-            f"Tin nhắn cần dịch: {text}"
+            f"Đoạn cần dịch:\n"
+            f"<<<BEGIN>>>\n"
+            f"{text}\n"
+            f"<<<END>>>"
         )
 
         translation_config = config.config.get("translation_config", {}).get("llm", {})

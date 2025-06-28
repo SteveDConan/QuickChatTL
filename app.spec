@@ -5,7 +5,7 @@ a = Analysis(
     ['app.py'],
     pathex=[],
     binaries=[],
-    datas=[('config.json', '.'), ('minichat', 'minichat')],
+    datas=[('config', 'config'), ('minichat', 'minichat')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

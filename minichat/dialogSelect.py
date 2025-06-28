@@ -2,6 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 from typing import Callable, Any, Optional
 import json
+from config import save_config
 
 
 class DialogSelect:
@@ -42,9 +43,13 @@ class DialogSelect:
             try:
                 self.config.firebase_url = url
                 self.config.config["firebase_url"] = url
-                with open("config.json", "w", encoding="utf-8") as f:
-                    json.dump(self.config.config, f, ensure_ascii=False, indent=4)
-                dialog.destroy()
+                if save_config(self.config.config):
+                    dialog.destroy()
+                else:
+                    tk.messagebox.showerror(
+                        dialog_config.get("error_title", "Lỗi"),
+                        dialog_config.get("error_save", "Không thể lưu URL"),
+                    )
             except Exception as e:
                 tk.messagebox.showerror(
                     dialog_config.get("error_title", "Lỗi"),

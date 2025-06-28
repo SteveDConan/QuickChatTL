@@ -32,7 +32,7 @@ class MiniChatApp:
         if not all([self.xai_api_key, self.chatgpt_api_key, self.llm_api_key]):
             messagebox.showerror(
                 "Error", 
-                "Missing API keys. Please update config.json"
+                "Missing API keys. Please update config/api_keys.json"
             )
             return False
         return True

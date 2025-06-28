@@ -10,7 +10,8 @@ A simple chat interface with translation features
 import os
 import tkinter as tk
 from tkinter import messagebox
-from minichat.minichat_cpn import initialize_root_window, initialize_chat_config, create_chat_window
+from minichat.minichat_cpn import initialize_root_window, initialize_chat_config, config, window_state, translator
+from minichat.ui import create_chat_window
 from config import load_config
 from ttkthemes import ThemedTk
 import customtkinter as ctk
@@ -66,7 +67,7 @@ class MiniChatApp:
                 self.chatgpt_api_key,
                 self.llm_api_key
             )
-            create_chat_window()
+            create_chat_window(config, window_state, translator)
             
             # Setup window close handler
             self.root.protocol("WM_DELETE_WINDOW", self.on_closing)

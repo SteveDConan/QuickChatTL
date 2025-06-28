@@ -1,0 +1,20 @@
+{
+    "loading_frames": ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
+    "loading_interval": 100,
+    "success_delay": 300,
+    "error_delay": 300,
+    "animation": {
+        "success": {
+            "text": "✓",
+            "bg": "#4CAF50"
+        },
+        "error": {
+            "text": "✗",
+            "bg": "#FF3B30"
+        },
+        "sending": {
+            "text": "{frame}",
+            "bg": "#90EE90"
+        }
+    }
+} 

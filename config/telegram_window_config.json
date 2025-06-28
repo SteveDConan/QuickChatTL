@@ -1,0 +1,19 @@
+{
+    "constants": {
+        "HWND_TOPMOST": -1,
+        "HWND_NOTOPMOST": -2,
+        "SWP_NOMOVE": 2,
+        "SWP_NOSIZE": 1,
+        "SWP_NOACTIVATE": 16,
+        "EVENT_OBJECT_REORDER": 32772,
+        "EVENT_SYSTEM_FOREGROUND": 3,
+        "WINEVENT_OUTOFCONTEXT": 0,
+        "WINEVENT_SKIPOWNTHREAD": 1,
+        "WINEVENT_SKIPOWNPROCESS": 2
+    },
+    "keyboard": {
+        "VK_CONTROL": 17,
+        "VK_V": 86,
+        "VK_RETURN": 13
+    }
+} 

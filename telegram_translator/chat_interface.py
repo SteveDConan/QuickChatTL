@@ -1,29 +1,30 @@
 import tkinter as tk
 import customtkinter as ctk
 import threading
-from minichat.dialogSelect import DialogSelect
-from minichat.telegram_integration import get_telegram_window_handle, update_widget_position
-from minichat.win_event import setup_window_monitoring
-from minichat.chat_handlers import send_translated_message, close_translation_window
+from telegram_translator.language_selector import LanguageAndApiSelector
+from telegram_translator.telegram_client import find_telegram_window_handle, update_widget_position
+from telegram_translator.window_events import setup_window_monitoring
+from telegram_translator.message_handler import process_and_send_translated_message, cleanup_translation_window
 
 def create_chat_window(config, window_state, translator):
+    """Create the main chat interface window"""
     if window_state.root is None:
         return
 
     window_config = config.config.get("widget_config", {}).get("window", {})
-    window_state.sam_mini_chat_win = window_state.root
-    window_state.sam_mini_chat_win.title(window_config.get("title", "Sam Mini Chat"))
-    window_state.sam_mini_chat_win.overrideredirect(
+    window_state.translation_window = window_state.root
+    window_state.translation_window.title(window_config.get("title", "Telegram Translation Tool"))
+    window_state.translation_window.overrideredirect(
         window_config.get("overrideredirect", True)
     )
-    window_state.sam_mini_chat_win.geometry(
+    window_state.translation_window.geometry(
         f"{window_config.get('width', 600)}x{config.widget_height}+0+0"
     )
 
     setup_window_monitoring(config, window_state)
 
     main_frame = ctk.CTkFrame(
-        window_state.sam_mini_chat_win,
+        window_state.translation_window,
         fg_color=window_config.get("bg", "#f0f0f0"),
         corner_radius=window_config.get("corner_radius", 0),
     )
@@ -46,7 +47,7 @@ def create_chat_window(config, window_state, translator):
     )
     input_frame.pack(fill=tk.X, pady=window_config.get("input_frame_pady", (0, 5)))
 
-    window_state.sam_mini_chat_entry = ctk.CTkTextbox(
+    window_state.message_input_field = ctk.CTkTextbox(
         input_frame,
         font=tuple(text_entry_style.get("font", ["Segoe UI", 16])),
         fg_color=text_entry_style.get("bg", "#ffffff"),
@@ -55,12 +56,12 @@ def create_chat_window(config, window_state, translator):
         corner_radius=text_entry_style.get("corner_radius", 5),
         height=text_entry_style.get("height", 1) * 32,
     )
-    window_state.sam_mini_chat_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    window_state.message_input_field.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-    window_state.sam_mini_chat_btn_send = ctk.CTkButton(
+    window_state.send_button = ctk.CTkButton(
         input_frame,
         text="➤",
-        command=lambda: send_translated_message(config, window_state, translator),
+        command=lambda: process_and_send_translated_message(config, window_state, translator),
         font=("Segoe UI", 16, "bold"),
         fg_color=button_style.get("send_bg", "#007AFF"),
         hover_color=button_style.get("send_hover", "#0056b3"),
@@ -68,7 +69,7 @@ def create_chat_window(config, window_state, translator):
         width=40,
         height=32,
     )
-    window_state.sam_mini_chat_btn_send.pack(
+    window_state.send_button.pack(
         side=tk.LEFT, padx=button_style.get("padx", 5)
     )
 
@@ -85,53 +86,53 @@ def create_chat_window(config, window_state, translator):
     left_controls.pack(side=tk.LEFT, padx=0)
 
     # Initialize variables
-    target_lang_var = tk.StringVar(
-        value=config.lang_map.get(config.target_lang_selection, "Tiếng Anh")
+    target_language_variable = tk.StringVar(
+        value=config.language_mapping.get(config.target_lang_selection, "Tiếng Anh")
     )
-    api_var = tk.StringVar(value=config.selected_api)
+    api_variable = tk.StringVar(value=config.selected_api)
 
-    def update_target_lang(val: str) -> None:
-        lang_code = next(
-            (code for code, name in config.lang_map.items() if name == val),
+    def update_target_language(language_name: str) -> None:
+        language_code = next(
+            (code for code, name in config.language_mapping.items() if name == language_name),
             config.target_lang_selection,
         )
-        config.target_lang_selection = lang_code
-        hwnd = get_telegram_window_handle(window_state)
-        if hwnd:
-            window_state.hwnd_target_lang[hwnd] = lang_code
+        config.target_lang_selection = language_code
+        telegram_window_handle = find_telegram_window_handle(window_state)
+        if telegram_window_handle:
+            window_state.window_target_language_map[telegram_window_handle] = language_code
         # Update translator language map
-        translator.lang_map = config.lang_map
+        translator.language_mapping = config.language_mapping
 
-    def update_api(val: str) -> None:
-        config.selected_api = val
+    def update_api_selection(api_name: str) -> None:
+        config.selected_api = api_name
         # Update translator config if needed
         translator.config = config.config
 
     # Initialize dialog selector
     global dialog_selector
-    dialog_selector = DialogSelect(window_state.sam_mini_chat_win, config, window_state)
+    dialog_selector = LanguageAndApiSelector(window_state.translation_window, config, window_state)
 
     # Quick language selection frame
-    quick_lang_frame = ctk.CTkFrame(
+    quick_language_frame = ctk.CTkFrame(
         left_controls, fg_color=window_config.get("quick_lang_frame_bg", "transparent")
     )
-    quick_lang_frame.pack(side=tk.LEFT, padx=0)
+    quick_language_frame.pack(side=tk.LEFT, padx=0)
 
     quick_languages = config.config.get("language_config", {}).get(
         "quick_languages", ["en", "vi", "ja", "zh", "ko"]
     )
 
-    def on_quick_lang_click(lang_code: str) -> None:
-        lang_name = config.lang_map.get(lang_code, lang_code)
-        target_lang_var.set(lang_name)
-        update_target_lang(lang_name)
+    def handle_quick_language_click(language_code: str) -> None:
+        language_name = config.language_mapping.get(language_code, language_code)
+        target_language_variable.set(language_name)
+        update_target_language(language_name)
 
-    for lang_code in quick_languages:
-        lang_name = config.lang_map.get(lang_code, lang_code)
-        btn = ctk.CTkButton(
-            quick_lang_frame,
-            text=lang_name,
-            command=lambda l=lang_code: on_quick_lang_click(l),
+    for language_code in quick_languages:
+        language_name = config.language_mapping.get(language_code, language_code)
+        language_button = ctk.CTkButton(
+            quick_language_frame,
+            text=language_name,
+            command=lambda l=language_code: handle_quick_language_click(l),
             font=tuple(quick_lang_style.get("font", ["Segoe UI", 13])),
             fg_color=quick_lang_style.get("bg", "#E3F2FD"),
             text_color=quick_lang_style.get("fg", "#1976D2"),
@@ -143,10 +144,10 @@ def create_chat_window(config, window_state, translator):
             width=quick_lang_style.get("width", 12),
             cursor=quick_lang_style.get("cursor", "hand2"),
         )
-        btn.pack(side=tk.LEFT, padx=0)
+        language_button.pack(side=tk.LEFT, padx=0)
 
-        def update_btn_appearance(*args, btn=btn):
-            if btn.cget("text") == target_lang_var.get():
+        def update_button_appearance(*args, btn=language_button):
+            if btn.cget("text") == target_language_variable.get():
                 btn.configure(
                     fg_color=quick_lang_style.get("selected_bg", "#2196F3"),
                     text_color=quick_lang_style.get("selected_fg", "white"),
@@ -159,14 +160,14 @@ def create_chat_window(config, window_state, translator):
                     border_color=quick_lang_style.get("border_color", "#90CAF9"),
                 )
 
-        target_lang_var.trace_add("write", update_btn_appearance)
-        update_btn_appearance()
+        target_language_variable.trace_add("write", update_button_appearance)
+        update_button_appearance()
 
-    # --- UI chính: Thêm label hiển thị API/ngôn ngữ đang chọn ---
-    api_btn = ctk.CTkButton(
+    # --- Main UI: Add labels to display current API/language selection ---
+    api_selection_button = ctk.CTkButton(
         left_controls,
-        textvariable=api_var,
-        command=lambda: dialog_selector.show_api_selection_dialog(api_var, update_api, styles),
+        textvariable=api_variable,
+        command=lambda: dialog_selector.show_api_selection_dialog(api_variable, update_api_selection, styles),
         font=("Segoe UI", 14, "bold"),
         fg_color="#E8F5E9",
         text_color="#2E7D32",
@@ -177,11 +178,12 @@ def create_chat_window(config, window_state, translator):
         width=45,
         height=32,
     )
-    api_btn.pack(side=tk.LEFT, padx=(0, 2))
-    lang_btn = ctk.CTkButton(
+    api_selection_button.pack(side=tk.LEFT, padx=(0, 2))
+    
+    language_selection_button = ctk.CTkButton(
         left_controls,
-        textvariable=target_lang_var,
-        command=lambda: dialog_selector.show_language_selection_dialog(target_lang_var, update_target_lang),
+        textvariable=target_language_variable,
+        command=lambda: dialog_selector.show_language_selection_dialog(target_language_variable, update_target_language),
         font=("Segoe UI", 14, "bold"),
         fg_color="#E3F2FD",
         text_color="#1976D2",
@@ -192,11 +194,12 @@ def create_chat_window(config, window_state, translator):
         width=45,
         height=32,
     )
-    lang_btn.pack(side=tk.LEFT, padx=(0, 2))
-    btn_quit = ctk.CTkButton(
+    language_selection_button.pack(side=tk.LEFT, padx=(0, 2))
+    
+    quit_button = ctk.CTkButton(
         left_controls,
         text="×",
-        command=lambda: close_translation_window(window_state),
+        command=lambda: cleanup_translation_window(window_state),
         font=("Segoe UI", 16, "bold"),
         fg_color=button_style.get("quit_bg", "#FF3B30"),
         hover_color=button_style.get("quit_hover", "#cc2f26"),
@@ -204,22 +207,22 @@ def create_chat_window(config, window_state, translator):
         width=15,
         height=32,
     )
-    btn_quit.pack(side=tk.LEFT, padx=(0, 2))
+    quit_button.pack(side=tk.LEFT, padx=(0, 2))
 
     def on_enter(event: tk.Event) -> str:
         if not event.state & 0x1:
-            send_translated_message(config, window_state, translator)
+            process_and_send_translated_message(config, window_state, translator)
             return "break"
         return ""
 
     def on_shift_enter(event: tk.Event) -> str:
         if event.state & 0x1:
-            window_state.sam_mini_chat_entry.insert(tk.INSERT, "\n")
+            window_state.message_input_field.insert(tk.INSERT, "\n")
             return "break"
         return ""
 
-    window_state.sam_mini_chat_entry.bind("<Return>", on_enter)
-    window_state.sam_mini_chat_entry.bind("<Shift-Return>", on_shift_enter)
+    window_state.message_input_field.bind("<Return>", on_enter)
+    window_state.message_input_field.bind("<Shift-Return>", on_shift_enter)
 
     def start_move(event: tk.Event) -> None:
         main_frame.x = event.x
@@ -228,9 +231,9 @@ def create_chat_window(config, window_state, translator):
     def do_move(event: tk.Event) -> None:
         deltax = event.x - main_frame.x
         deltay = event.y - main_frame.y
-        x = window_state.sam_mini_chat_win.winfo_x() + deltax
-        y = window_state.sam_mini_chat_win.winfo_y() + deltay
-        window_state.sam_mini_chat_win.geometry(f"+{x}+{y}")
+        x = window_state.translation_window.winfo_x() + deltax
+        y = window_state.translation_window.winfo_y() + deltay
+        window_state.translation_window.geometry(f"+{x}+{y}")
 
     main_frame.bind("<Button-1>", start_move)
     main_frame.bind("<B1-Motion>", do_move)

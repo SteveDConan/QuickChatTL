@@ -5,12 +5,12 @@ import customtkinter as ctk
 from ttkthemes import ThemedTk
 import ctypes
 from ctypes import wintypes
-from config import load_config
+from settings_manager import load_config
 from typing import Optional, Tuple, Dict, Any
-from minichat.utils import remove_think_tags, fetch_ngrok_url
-from minichat.dialogSelect import DialogSelect
-from minichat.translator import Translator
-from minichat.ui import create_chat_window
+from telegram_translator.helpers import remove_think_tags, fetch_ngrok_url
+from telegram_translator.language_selector import LanguageAndApiSelector
+from telegram_translator.translation_service import Translator
+from telegram_translator.chat_interface import create_chat_window
 
 try:
     import psutil
@@ -25,7 +25,8 @@ ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark
 user32 = ctypes.windll.user32
 
 
-class Config:
+class ApplicationConfiguration:
+    """Configuration class for application settings"""
     def __init__(self):
         self.config = load_config()
         self.xai_api_key = self.config.get("xai_api_key", "")
@@ -38,7 +39,7 @@ class Config:
         self.widget_y_offset = widget_config.get("y_offset", 1)
 
         language_config = self.config.get("language_config", {})
-        self.lang_map = language_config.get(
+        self.language_mapping = language_config.get(
             "language_names", {"en": "Tiếng Anh", "vi": "Tiếng Việt"}
         )
 
@@ -65,49 +66,52 @@ class Config:
         )
 
 
-class WindowState:
+class ApplicationWindowState:
+    """Class to manage application window state and UI components"""
     def __init__(self):
         self.root: Optional[ThemedTk] = None
-        self.sam_mini_chat_win: Optional[ThemedTk] = None
-        self.sam_mini_chat_entry: Optional[ctk.CTkTextbox] = None
-        self.sam_mini_chat_btn_send: Optional[ctk.CTkButton] = None
-        self.last_valid_telegram_hwnd: Optional[int] = None
-        self.widget_sam_mini_chat_thread_running: bool = True
+        self.translation_window: Optional[ThemedTk] = None
+        self.message_input_field: Optional[ctk.CTkTextbox] = None
+        self.send_button: Optional[ctk.CTkButton] = None
+        self.last_valid_telegram_window_handle: Optional[int] = None
+        self.is_widget_thread_running: bool = True
         self.z_order_callback: Optional[Any] = None
-        self.hwnd_target_lang: Dict[int, str] = {}
+        self.window_target_language_map: Dict[int, str] = {}
 
 
 # Global instances
-config = Config()
-window_state = WindowState()
-translator = Translator()
+app_config = ApplicationConfiguration()
+app_window_state = ApplicationWindowState()
+translation_service = Translator()
 
 
-def initialize_root_window(r: ThemedTk) -> None:
-    window_state.root = r
+def initialize_root_window(root_window: ThemedTk) -> None:
+    """Initialize the main root window"""
+    app_window_state.root = root_window
 
 
-def initialize_chat_config(
+def initialize_chat_configuration(
     xai_api_key: str, chatgpt_api_key: str, llm_api_key: str
 ) -> None:
+    """Initialize chat configuration with API keys"""
     if xai_api_key and xai_api_key.startswith("xai-"):
-        config.xai_api_key = xai_api_key
-        translator.xai_api_key = xai_api_key
+        app_config.xai_api_key = xai_api_key
+        translation_service.xai_api_key = xai_api_key
     if chatgpt_api_key and chatgpt_api_key.startswith("sk-"):
-        config.chatgpt_api_key = chatgpt_api_key
-        translator.chatgpt_api_key = chatgpt_api_key
+        app_config.chatgpt_api_key = chatgpt_api_key
+        translation_service.chatgpt_api_key = chatgpt_api_key
     if llm_api_key and llm_api_key.startswith("llm-"):
-        config.llm_api_key = llm_api_key
-        translator.llm_api_key = llm_api_key
+        app_config.llm_api_key = llm_api_key
+        translation_service.llm_api_key = llm_api_key
 
     # Get language settings from config
-    language_config = config.config.get("language_config", {})
-    config.target_lang_selection = language_config.get("target_lang", "en")
-    config.selected_api = language_config.get("selected_api", "XAI")
+    language_config = app_config.config.get("language_config", {})
+    app_config.target_lang_selection = language_config.get("target_lang", "en")
+    app_config.selected_api = language_config.get("selected_api", "XAI")
     
     # Update translator firebase_url if available
-    if config.firebase_url:
-        translator.firebase_url = config.firebase_url
+    if app_config.firebase_url:
+        translation_service.firebase_url = app_config.firebase_url
     
     # Update translator config if needed
-    translator.config = config.config
+    translation_service.config = app_config.config

@@ -1,21 +1,22 @@
-# Telegram Auto Tool
+# Telegram Auto Translation Tool
 
-A powerful tool for managing multiple Telegram accounts with automated login, live checking, and ChatGPT integration.
+A powerful tool for translating and sending messages via Telegram with automated translation services.
 
 ## Features
 
-- **Multi-Account Management**: Handle multiple Telegram accounts efficiently
-- **Automated Login**: Bulk login with Telethon support
-- **Live Status Checking**: Verify account status automatically
-- **ChatGPT Integration**: AI-powered chat assistance
-- **Window Management**: Arrange and manage Telegram windows
+- **Multi-API Translation**: Support for XAI, ChatGPT, and LLM translation APIs
+- **Telegram Integration**: Direct integration with Telegram Desktop
+- **Real-time Translation**: Instant translation and message sending
 - **Multi-language Support**: Vietnamese, English, and Chinese interfaces
+- **Smart Window Management**: Automatic positioning and monitoring of Telegram windows
+- **User-friendly Interface**: Modern, intuitive chat interface
 
 ## Requirements
 
 - Python 3.8+
 - Telegram Desktop
 - Windows OS
+- API keys for translation services (XAI, ChatGPT, LLM)
 
 ## Installation
 
@@ -31,49 +32,79 @@ pip install -r requirements.txt
 ```
 
 3. Configure your settings:
-- Set up your Telegram API credentials in `core/config.py`
-- Adjust window sizes and paths in settings
-- Configure ChatGPT API key if needed
+- Set up your API credentials in `config/credentials.json`
+- Adjust interface settings in `config/interface_settings.json`
+- Configure translation settings in `config/translation_settings.json`
 
 ## Usage
 
 1. Run the application:
 ```bash
-python app.py
+python main.py
 ```
 
 2. Main features:
-- **Login**: Bulk login to multiple Telegram accounts
-- **Check Live**: Verify account status
-- **Window Management**: Arrange Telegram windows
-- **Settings**: Configure paths, window sizes, and API keys
+- **Translation**: Enter text and get instant translation
+- **Auto-send**: Automatically send translated messages to Telegram
+- **Language Selection**: Choose target language for translation
+- **API Selection**: Switch between different translation APIs
 
 ## Project Structure
 
 ```
 project_root/
 │
-├── app.py                      # Main application entry point
-├── core/
-│   ├── config.py              # Configuration variables
-│   ├── session_utils.py       # Session management
-│   ├── telegram_utils.py      # Telegram window utilities
-│   ├── image_utils.py         # Image processing utilities
-│   ├── update_utils.py        # Update checking
-│   └── language.py            # Language localization
+├── main.py                           # Main application entry point
+├── settings_manager.py               # Configuration management
+├── test_telegram_integration.py      # Integration testing
 │
-├── ui/
-│   ├── login_ui.py           # Login interface
-│   ├── check_live_ui.py      # Live checking interface
-│   ├── main_ui.py            # Main application UI
-│   └── settings_ui.py        # Settings interface
+├── telegram_translator/              # Core translation module
+│   ├── __init__.py                   # Package initialization
+│   ├── app_initializer.py           # Application initialization
+│   ├── message_handler.py           # Message processing
+│   ├── telegram_client.py           # Telegram integration
+│   ├── translation_service.py       # Translation APIs
+│   ├── chat_interface.py            # User interface
+│   ├── language_selector.py         # Language selection
+│   ├── window_events.py             # Window event handling
+│   └── helpers.py                   # Utility functions
 │
-├── mini_chat/                # ChatGPT integration
-│   └── mini_chat.py
+├── config/                          # Configuration files
+│   ├── credentials.json             # API keys and credentials
+│   ├── ui_components.json           # UI component settings
+│   ├── supported_languages.json     # Language configurations
+│   ├── translation_settings.json    # Translation preferences
+│   ├── interface_settings.json      # Interface configurations
+│   ├── telegram_window_config.json  # Telegram window settings
+│   ├── translation_prompts.json     # Translation prompts
+│   └── README.md                    # Configuration documentation
 │
-├── assets/                   # Resources and configs
-├── README.md                # This file
-└── requirements.txt         # Python dependencies
+├── README.md                        # This file
+├── requirements.txt                 # Python dependencies
+├── LICENSE                          # License information
+└── app.spec                         # PyInstaller specification
+```
+
+## Configuration
+
+### API Keys Setup
+Edit `config/credentials.json`:
+```json
+{
+    "xai_api_key": "your-xai-api-key",
+    "chatgpt_api_key": "your-chatgpt-api-key", 
+    "llm_api_key": "your-llm-api-key"
+}
+```
+
+### Translation Settings
+Configure in `config/translation_settings.json`:
+```json
+{
+    "default_target_language": "en",
+    "preferred_api": "XAI",
+    "translation_timeout": 30
+}
 ```
 
 ## Contributing
@@ -90,8 +121,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- Thanks to Telethon for the Telegram client functionality
-- OpenAI for ChatGPT integration
+- Thanks to XAI, OpenAI, and LLM providers for translation APIs
+- Telegram for the messaging platform
 - All contributors and users of this tool
 
 ## Support

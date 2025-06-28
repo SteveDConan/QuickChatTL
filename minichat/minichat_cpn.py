@@ -1,19 +1,16 @@
-import os
-import sys
 import requests
 import json
 import threading
 import time
 import tkinter as tk
-from tkinter import messagebox
 import customtkinter as ctk
 from ttkthemes import ThemedTk
 import ctypes
 from ctypes import wintypes
-import re
 from config import load_config
 from typing import Optional, Tuple, Dict, Any
 from minichat.utils import remove_think_tags, fetch_ngrok_url
+from minichat.dialogSelect import DialogSelect
 
 try:
     import psutil
@@ -23,18 +20,6 @@ except ImportError:
 # Set appearance mode and default color theme
 ctk.set_appearance_mode("light")  # Modes: "System" (standard), "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
-
-# Windows API Constants
-HWND_TOPMOST = -1
-HWND_NOTOPMOST = -2
-SWP_NOMOVE = 0x0002
-SWP_NOSIZE = 0x0001
-SWP_NOACTIVATE = 0x0010
-EVENT_OBJECT_REORDER = 0x8004
-EVENT_SYSTEM_FOREGROUND = 0x0003
-WINEVENT_OUTOFCONTEXT = 0x0000
-WINEVENT_SKIPOWNTHREAD = 0x0001
-WINEVENT_SKIPOWNPROCESS = 0x0002
 
 # Windows API setup
 user32 = ctypes.windll.user32
@@ -53,7 +38,6 @@ class Config:
         self.widget_y_offset = widget_config.get("y_offset", 1)
 
         language_config = self.config.get("language_config", {})
-        self.all_lang_options = language_config.get("available_languages", ["en", "vi"])
         self.lang_map = language_config.get(
             "language_names", {"en": "Tiếng Anh", "vi": "Tiếng Việt"}
         )
@@ -61,7 +45,6 @@ class Config:
         # Get Windows API constants from config
         windows_api_config = self.config.get("windows_api", {}).get("constants", {})
         self.HWND_TOPMOST = windows_api_config.get("HWND_TOPMOST", -1)
-        self.HWND_NOTOPMOST = windows_api_config.get("HWND_NOTOPMOST", -2)
         self.SWP_NOMOVE = windows_api_config.get("SWP_NOMOVE", 0x0002)
         self.SWP_NOSIZE = windows_api_config.get("SWP_NOSIZE", 0x0001)
         self.SWP_NOACTIVATE = windows_api_config.get("SWP_NOACTIVATE", 0x0010)
@@ -114,53 +97,8 @@ def initialize_root_window(r: ThemedTk) -> None:
     window_state.root = r
 
 
-def prompt_for_firebase_url() -> Optional[str]:
-    if config.firebase_url:
-        return config.firebase_url
-
-    dialog_config = config.config.get("dialog_config", {}).get("firebase_url", {})
-    dialog = tk.Toplevel(window_state.root)
-    dialog.title(dialog_config.get("title", "Nhập Firebase URL"))
-    dialog.geometry(dialog_config.get("geometry", "400x150"))
-    dialog.attributes("-topmost", True)
-    dialog.grab_set()
-
-    tk.Label(
-        dialog, text=dialog_config.get("label_text", "Vui lòng nhập Firebase URL:")
-    ).pack(pady=dialog_config.get("label_pady", 10))
-    url_entry = tk.Entry(dialog, width=dialog_config.get("entry_width", 50))
-    url_entry.pack(pady=dialog_config.get("entry_pady", 5))
-
-    def save_url() -> None:
-        url = url_entry.get().strip()
-        if not url:
-            messagebox.showerror(
-                dialog_config.get("error_title", "Lỗi"),
-                dialog_config.get("error_empty", "URL không được để trống!"),
-            )
-            return
-
-        try:
-            config.firebase_url = url
-            config.config["firebase_url"] = url
-            with open("config.json", "w", encoding="utf-8") as f:
-                json.dump(config.config, f, ensure_ascii=False, indent=4)
-            dialog.destroy()
-        except Exception as e:
-            messagebox.showerror(
-                dialog_config.get("error_title", "Lỗi"),
-                dialog_config.get("error_save", "Không thể lưu URL: {}").format(e),
-            )
-
-    tk.Button(
-        dialog, text=dialog_config.get("button_text", "OK"), command=save_url
-    ).pack(pady=dialog_config.get("button_pady", 10))
-    dialog.wait_window()
-    return config.firebase_url
-
-
 def initialize_chat_config(
-    xai_api_key: str, chatgpt_api_key: str, llm_api_key: str, default_lang: str
+    xai_api_key: str, chatgpt_api_key: str, llm_api_key: str
 ) -> None:
     if xai_api_key and xai_api_key.startswith("xai-"):
         config.xai_api_key = xai_api_key
@@ -171,7 +109,6 @@ def initialize_chat_config(
 
     # Get language settings from config
     language_config = config.config.get("language_config", {})
-    config.my_lang_selection = language_config.get("my_lang", "vi")
     config.target_lang_selection = language_config.get("target_lang", "en")
     config.selected_api = language_config.get("selected_api", "XAI")
 
@@ -273,6 +210,10 @@ def create_chat_window() -> None:
     def update_api(val: str) -> None:
         config.selected_api = val
 
+    # Initialize dialog selector
+    global dialog_selector
+    dialog_selector = DialogSelect(window_state.sam_mini_chat_win, config, window_state)
+
     # Quick language selection frame
     quick_lang_frame = ctk.CTkFrame(
         left_controls, fg_color=window_config.get("quick_lang_frame_bg", "transparent")
@@ -324,91 +265,11 @@ def create_chat_window() -> None:
         target_lang_var.trace_add("write", update_btn_appearance)
         update_btn_appearance()
 
-    # --- Dialog chọn API (giữ nguyên, chỉ thêm style nổi bật) ---
-    def open_api_dialog():
-        apis = styles.get("api_values", ["XAI", "ChatGPT", "LLM"])
-        dialog = tk.Toplevel(window_state.sam_mini_chat_win)
-        dialog.title("Chọn API")
-        dialog.attributes("-topmost", True)
-        dialog.grab_set()
-        dialog.update_idletasks()
-        w, h = 250, 50 + 40 * len(apis)
-        ws = dialog.winfo_screenwidth()
-        hs = dialog.winfo_screenheight()
-        x = (ws // 2) - (w // 2)
-        y = (hs // 2) - (h // 2)
-        dialog.geometry(f"{w}x{h}+{x}+{y}")
-        current_api = api_var.get()
-        for api in apis:
-            is_selected = api == current_api
-            btn = ctk.CTkButton(
-                dialog,
-                text=api,
-                width=200,
-                fg_color="#2E7D32" if is_selected else "#E8F5E9",
-                text_color="white" if is_selected else "#2E7D32",
-                hover_color="#388E3C" if is_selected else "#C8E6C9",
-                border_color="#1B5E20" if is_selected else "#C8E6C9",
-                border_width=2 if is_selected else 1,
-                font=("Segoe UI", 13, "bold" if is_selected else "normal"),
-                command=lambda a=api: select_api(a, dialog),
-            )
-            btn.pack(pady=5, padx=10, fill="x")
-
-    # --- Dialog chọn ngôn ngữ (sửa lại lấy từ config, hiển thị giữa màn hình, style nổi bật) ---
-    def select_lang(lang, dialog):
-        target_lang_var.set(lang)
-        update_target_lang(lang)
-        dialog.destroy()
-
-    def open_lang_dialog():
-        lang_cfg = config.config.get("language_config", {})
-        available_langs = lang_cfg.get(
-            "available_languages", list(config.lang_map.keys())
-        )
-        lang_names = lang_cfg.get("language_names", config.lang_map)
-        # Tạo dialog
-        dialog = tk.Toplevel(window_state.sam_mini_chat_win)
-        dialog.title("Chọn ngôn ngữ")
-        dialog.attributes("-topmost", True)
-        dialog.grab_set()
-        # Tính toán vị trí giữa màn hình
-        dialog.update_idletasks()
-        w, h = 260, min(600, 50 + 40 * len(available_langs))
-        ws = dialog.winfo_screenwidth()
-        hs = dialog.winfo_screenheight()
-        x = (ws // 2) - (w // 2)
-        y = (hs // 2) - (h // 2)
-        dialog.geometry(f"{w}x{h}+{x}+{y}")
-        # Hiển thị danh sách ngôn ngữ
-        current_lang = target_lang_var.get()
-        for lang_code in available_langs:
-            lang_label = lang_names.get(lang_code, lang_code)
-            is_selected = lang_label == current_lang
-            btn = ctk.CTkButton(
-                dialog,
-                text=lang_label,
-                width=280,
-                fg_color="#2196F3" if is_selected else "#E3F2FD",
-                text_color="white" if is_selected else "#1976D2",
-                hover_color="#1976D2" if is_selected else "#BBDEFB",
-                border_color="#1976D2" if is_selected else "#90CAF9",
-                border_width=2 if is_selected else 1,
-                font=("Segoe UI", 13, "bold" if is_selected else "normal"),
-                command=lambda l=lang_label: select_lang(l, dialog),
-            )
-            btn.pack(pady=4, padx=10, fill="x")
-
-    def select_api(api, dialog):
-        api_var.set(api)
-        update_api(api)
-        dialog.destroy()
-
     # --- UI chính: Thêm label hiển thị API/ngôn ngữ đang chọn ---
     api_btn = ctk.CTkButton(
         left_controls,
         textvariable=api_var,
-        command=open_api_dialog,
+        command=lambda: dialog_selector.open_api_dialog(api_var, update_api, styles),
         font=("Segoe UI", 14, "bold"),
         fg_color="#E8F5E9",
         text_color="#2E7D32",
@@ -423,7 +284,7 @@ def create_chat_window() -> None:
     lang_btn = ctk.CTkButton(
         left_controls,
         textvariable=target_lang_var,
-        command=open_lang_dialog,
+        command=lambda: dialog_selector.open_lang_dialog(target_lang_var, update_target_lang),
         font=("Segoe UI", 14, "bold"),
         fg_color="#E3F2FD",
         text_color="#1976D2",
@@ -658,17 +519,11 @@ def send_sam_mini_chat_message() -> None:
         try:
             translated = None
             if config.selected_api == "XAI":
-                translated, _ = translate_text_for_dialogue_xai(
-                    msg, source_lang="auto", target_lang=target_lang
-                )
+                translated, _ = translate_text_for_dialogue_xai(msg, target_lang)
             elif config.selected_api == "ChatGPT":
-                translated, _ = translate_text_for_dialogue_chatgpt(
-                    msg, source_lang="auto", target_lang=target_lang
-                )
+                translated, _ = translate_text_for_dialogue_chatgpt(msg, target_lang)
             elif config.selected_api == "LLM":
-                translated, _ = translate_text_for_dialogue_llm(
-                    msg, source_lang="auto", target_lang=target_lang
-                )
+                translated, _ = translate_text_for_dialogue_llm(msg, target_lang)
 
             if translated is None or translated == msg:
                 raise Exception("Translation failed")
@@ -754,12 +609,9 @@ def get_correct_telegram_hwnd() -> Optional[int]:
     hwnd_result = None
     EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
 
-    def enum_windows_proc(hwnd: int, lParam: int) -> bool:
+    def enum_windows_proc(hwnd: int, _: int) -> bool:
         nonlocal hwnd_result
         if user32.IsWindowVisible(hwnd) and not user32.IsIconic(hwnd):
-            length = user32.GetWindowTextLengthW(hwnd)
-            buff = ctypes.create_unicode_buffer(length + 1)
-            user32.GetWindowTextW(hwnd, buff, length + 1)
             pid_local = ctypes.wintypes.DWORD()
             user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid_local))
             try:
@@ -778,14 +630,13 @@ def get_correct_telegram_hwnd() -> Optional[int]:
 
 
 def translate_text_for_dialogue_xai(
-    text: str, source_lang: str = "auto", target_lang: str = "vi"
+    text: str, target_lang: str = "vi"
 ) -> Tuple[Optional[str], Optional[str]]:
     if not config.xai_api_key:
         return text, None
 
     try:
         lang_name = config.lang_map.get(target_lang.lower(), target_lang)
-        # f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp. Nhiệm vụ của bạn là dịch tin nhắn sau từ {source_lang} sang {lang_name}. "
         prompt = (
             f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
             f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
@@ -839,7 +690,7 @@ def translate_text_for_dialogue_xai(
 
 
 def translate_text_for_dialogue_chatgpt(
-    text: str, source_lang: str = "auto", target_lang: str = "vi"
+    text: str, target_lang: str = "es"
 ) -> Tuple[Optional[str], Optional[str]]:
     if not config.chatgpt_api_key:
         return text, None
@@ -903,13 +754,14 @@ def translate_text_for_dialogue_chatgpt(
 
 
 def translate_text_for_dialogue_llm(
-    text: str, source_lang: str = "auto", target_lang: str = "vi"
+    text: str, target_lang: str = "vi"
 ) -> Tuple[Optional[str], Optional[str]]:
     if not config.llm_api_key:
         return None, "LLM API key not set"
 
     if not config.firebase_url:
-        config.firebase_url = prompt_for_firebase_url()
+        if dialog_selector:
+            config.firebase_url = dialog_selector.prompt_for_firebase_url()
         if not config.firebase_url:
             return None, "Firebase URL not set"
 
@@ -977,7 +829,7 @@ def win_event_callback(
     dwmsEventTime: int,
 ) -> None:
     try:
-        if event == EVENT_OBJECT_REORDER or event == EVENT_SYSTEM_FOREGROUND:
+        if event == config.EVENT_OBJECT_REORDER or event == config.EVENT_SYSTEM_FOREGROUND:
             if hwnd == get_correct_telegram_hwnd():
                 if (
                     window_state.sam_mini_chat_win

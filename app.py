@@ -25,7 +25,6 @@ class MiniChatApp:
         self.xai_api_key = self.config.get("xai_api_key", "")
         self.chatgpt_api_key = self.config.get("chatgpt_api_key", "")
         self.llm_api_key = self.config.get("llm_api_key", "")
-        self.default_target_lang = self.config.get("default_target_lang", "vi")
 
     def validate_api_keys(self) -> bool:
         """Check if all API keys are valid"""
@@ -65,8 +64,7 @@ class MiniChatApp:
             initialize_chat_config(
                 self.xai_api_key,
                 self.chatgpt_api_key,
-                self.llm_api_key,
-                self.default_target_lang
+                self.llm_api_key
             )
             create_chat_window()
             

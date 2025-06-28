@@ -17,7 +17,7 @@ class WINDOWPLACEMENT(ctypes.Structure):
         ("rcNormalPosition", ctypes.wintypes.RECT),
     ]
 
-def get_correct_telegram_hwnd(window_state) -> Optional[int]:
+def get_telegram_window_handle(window_state) -> Optional[int]:
     hwnd_fore = user32.GetForegroundWindow()
     pid = ctypes.wintypes.DWORD()
     user32.GetWindowThreadProcessId(hwnd_fore, ctypes.byref(pid))
@@ -57,7 +57,7 @@ def get_correct_telegram_hwnd(window_state) -> Optional[int]:
     user32.EnumWindows(enum_proc_c, 0)
     return hwnd_result
 
-def send_message_to_telegram_input(hwnd: int, message: str, config, window_state) -> bool:
+def send_message_to_telegram(hwnd: int, message: str, config, window_state) -> bool:
     rect = ctypes.wintypes.RECT()
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     width = rect.right - rect.left
@@ -96,7 +96,7 @@ def send_message_to_telegram_input(hwnd: int, message: str, config, window_state
 
     return True
 
-def sync_z_order_with_telegram(telegram_hwnd: int, widget_hwnd: int, config) -> None:
+def sync_window_z_order(telegram_hwnd: int, widget_hwnd: int, config) -> None:
     try:
         # Always set the widget to be topmost
         user32.SetWindowPos(
@@ -111,13 +111,13 @@ def sync_z_order_with_telegram(telegram_hwnd: int, widget_hwnd: int, config) -> 
     except Exception as e:
         print(f"Error syncing Z-order: {e}")
 
-def update_sam_mini_chat_position(config, window_state):
+def update_widget_position(config, window_state):
     while (
         window_state.sam_mini_chat_win is not None
         and window_state.widget_sam_mini_chat_thread_running
     ):
         try:
-            hwnd = get_correct_telegram_hwnd(window_state)
+            hwnd = get_telegram_window_handle(window_state)
             if hwnd:
                 placement = WINDOWPLACEMENT()
                 placement.length = ctypes.sizeof(WINDOWPLACEMENT)
@@ -144,7 +144,7 @@ def update_sam_mini_chat_position(config, window_state):
                     window_state.sam_mini_chat_win.geometry(new_geometry)
 
                     widget_hwnd = window_state.sam_mini_chat_win.winfo_id()
-                    sync_z_order_with_telegram(hwnd, widget_hwnd, config)
+                    sync_window_z_order(hwnd, widget_hwnd, config)
             else:
                 window_state.sam_mini_chat_win.withdraw()
 

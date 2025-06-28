@@ -1,4 +1,6 @@
 import requests
+import json
+import os
 from typing import Optional, Tuple
 from config import load_config
 from minichat.utils import remove_think_tags, fetch_ngrok_url
@@ -17,8 +19,47 @@ class Translator:
         self.lang_map = language_config.get(
             "language_names", {"en": "Tiếng Anh", "vi": "Tiếng Việt"}
         )
+        
+        # Load prompts config
+        self.prompts_config = self._load_prompts_config()
 
-    def translate_text_for_dialogue_xai(
+    def _load_prompts_config(self):
+        """Load prompts configuration from prompts.json"""
+        try:
+            config_path = os.path.join("config", "prompts.json")
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading prompts config: {e}")
+            return {}
+
+    def _build_translation_prompt(self, text: str, target_lang: str) -> str:
+        """Build translation prompt using config"""
+        prompts_config = self.prompts_config.get("translation_prompt", {})
+        
+        lang_name = self.lang_map.get(target_lang.lower(), target_lang)
+        system_prompt = prompts_config.get("system_prompt", "")
+        task_description = prompts_config.get("task_description", "").format(lang_name=lang_name)
+        requirements = prompts_config.get("requirements", [])
+        content_wrapper = prompts_config.get("content_wrapper", {})
+        
+        # Build requirements string
+        requirements_str = "\n".join([f"- {req}" for req in requirements])
+        
+        # Build full prompt
+        prompt = (
+            f"{system_prompt} "
+            f"{task_description}\n"
+            f"{requirements_str}\n"
+            f"Đoạn cần dịch:\n"
+            f"{content_wrapper.get('begin', '<<<BEGIN>>>')}\n"
+            f"{text}\n"
+            f"{content_wrapper.get('end', '<<<END>>>')}"
+        )
+        
+        return prompt
+
+    def translate_with_xai_api(
         self, text: str, target_lang: str = "vi"
     ) -> Tuple[Optional[str], Optional[str]]:
         """Translate text using XAI API"""
@@ -26,25 +67,7 @@ class Translator:
             return text, None
 
         try:
-            lang_name = self.lang_map.get(target_lang.lower(), target_lang)
-            prompt = (
-                f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
-                f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
-                f"Bối cảnh: Bạn là một tư vấn viên chuyên nghiệp, đang cung cấp dịch vụ và cần giao tiếp chính xác với khách hàng bằng ngôn ngữ đích. "
-                f"Nhiệm vụ: dịch đúng phần nội dung nằm giữa các ký hiệu <<<BEGIN>>> và <<<END>>> sang {lang_name}, đảm bảo:\n"
-                f"- Ngữ pháp hoàn chỉnh, từ vựng phù hợp, không thiếu/khuyết ý.\n"
-                f"- Giữ nguyên cấu trúc câu, định dạng (xuống dòng, danh sách dấu đầu dòng, ký tự đặc biệt…) nếu có.\n"
-                f"- Giọng điệu thân thiện nhưng vẫn lịch sự, tôn trọng, phù hợp với văn hóa bản địa của khách hàng.\n"
-                f"- Xử lý thành ngữ, tục ngữ hay cách diễn đạt đặc thù sao cho tự nhiên trong ngôn ngữ đích.\n"
-                f"- Nếu có thuật ngữ chuyên ngành hoặc tên sản phẩm/dịch vụ, giữ hoặc chú ý phiên âm/phương án thể hiện phù hợp.\n"
-                f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn,không kèm ký hiệu <<<BEGIN>>> hoặc <<<END>>> hoặc bất kỳ ký tự/thẻ, ký tự bổ sung nào khác**. '
-                f" Nếu nội dung dịch có dấu ngoặc kép nội bộ do cấu trúc ngôn ngữ đích yêu cầu, chỉ giữ đúng vị trí của dấu đó, không thêm dấu bao bên ngoài.\n"
-                f"- Không thêm bình luận, giải thích hay chú giải nào khác; chỉ output đúng văn bản dịch.\n"
-                f"Đoạn cần dịch:\n"
-                f"<<<BEGIN>>>\n"
-                f"{text}\n"
-                f"<<<END>>>"
-            )
+            prompt = self._build_translation_prompt(text, target_lang)
 
             headers = {
                 "Authorization": f"Bearer {self.xai_api_key}",
@@ -78,7 +101,7 @@ class Translator:
         except Exception as e:
             return text, None
 
-    def translate_text_for_dialogue_chatgpt(
+    def translate_with_chatgpt_api(
         self, text: str, target_lang: str = "es"
     ) -> Tuple[Optional[str], Optional[str]]:
         """Translate text using ChatGPT API"""
@@ -86,25 +109,7 @@ class Translator:
             return text, None
 
         try:
-            lang_name = self.lang_map.get(target_lang.lower(), target_lang)
-            prompt = (
-                f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
-                f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
-                f"Bối cảnh: Bạn là một tư vấn viên chuyên nghiệp, đang cung cấp dịch vụ và cần giao tiếp chính xác với khách hàng bằng ngôn ngữ đích. "
-                f"Nhiệm vụ: dịch đúng phần nội dung nằm giữa các ký hiệu <<<BEGIN>>> và <<<END>>> sang {lang_name}, đảm bảo:\n"
-                f"- Ngữ pháp hoàn chỉnh, từ vựng phù hợp, không thiếu/khuyết ý.\n"
-                f"- Giữ nguyên cấu trúc câu, định dạng (xuống dòng, danh sách dấu đầu dòng, ký tự đặc biệt…) nếu có.\n"
-                f"- Giọng điệu thân thiện nhưng vẫn lịch sự, tôn trọng, phù hợp với văn hóa bản địa của khách hàng.\n"
-                f"- Xử lý thành ngữ, tục ngữ hay cách diễn đạt đặc thù sao cho tự nhiên trong ngôn ngữ đích.\n"
-                f"- Nếu có thuật ngữ chuyên ngành hoặc tên sản phẩm/dịch vụ, giữ hoặc chú ý phiên âm/phương án thể hiện phù hợp.\n"
-                f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn,không kèm ký hiệu <<<BEGIN>>> hoặc <<<END>>> hoặc bất kỳ ký tự/thẻ, ký tự bổ sung nào khác**. '
-                f" Nếu nội dung dịch có dấu ngoặc kép nội bộ do cấu trúc ngôn ngữ đích yêu cầu, chỉ giữ đúng vị trí của dấu đó, không thêm dấu bao bên ngoài.\n"
-                f"- Không thêm bình luận, giải thích hay chú giải nào khác; chỉ output đúng văn bản dịch.\n"
-                f"Đoạn cần dịch:\n"
-                f"<<<BEGIN>>>\n"
-                f"{text}\n"
-                f"<<<END>>>"
-            )
+            prompt = self._build_translation_prompt(text, target_lang)
 
             headers = {
                 "Authorization": f"Bearer {self.chatgpt_api_key}",
@@ -142,7 +147,7 @@ class Translator:
         except Exception as e:
             return text, None
 
-    def translate_text_for_dialogue_llm(
+    def translate_with_llm_api(
         self, text: str, target_lang: str = "vi", dialog_selector=None
     ) -> Tuple[Optional[str], Optional[str]]:
         """Translate text using LLM API"""
@@ -151,7 +156,7 @@ class Translator:
 
         if not self.firebase_url:
             if dialog_selector:
-                self.firebase_url = dialog_selector.prompt_for_firebase_url()
+                self.firebase_url = dialog_selector.request_firebase_url()
             if not self.firebase_url:
                 return None, "Firebase URL not set"
 
@@ -166,25 +171,7 @@ class Translator:
                 "Authorization": f"Bearer {self.llm_api_key}",
             }
 
-            lang_name = self.lang_map.get(target_lang.lower(), target_lang)
-            prompt = (
-                f"Bạn là một công cụ dịch ngôn ngữ chuyên nghiệp, am hiểu sâu sắc về văn hóa và phong cách giao tiếp tại địa phương của ngôn ngữ đích. "
-                f"Bạn luôn cân nhắc ngữ cảnh và đối tượng nhận thông điệp khi chuyển ngữ. "
-                f"Bối cảnh: Bạn là một tư vấn viên chuyên nghiệp, đang cung cấp dịch vụ và cần giao tiếp chính xác với khách hàng bằng ngôn ngữ đích. "
-                f"Nhiệm vụ: dịch đúng phần nội dung nằm giữa các ký hiệu <<<BEGIN>>> và <<<END>>> sang {lang_name}, đảm bảo:\n"
-                f"- Ngữ pháp hoàn chỉnh, từ vựng phù hợp, không thiếu/khuyết ý.\n"
-                f"- Giữ nguyên cấu trúc câu, định dạng (xuống dòng, danh sách dấu đầu dòng, ký tự đặc biệt…) nếu có.\n"
-                f"- Giọng điệu thân thiện nhưng vẫn lịch sự, tôn trọng, phù hợp với văn hóa bản địa của khách hàng.\n"
-                f"- Xử lý thành ngữ, tục ngữ hay cách diễn đạt đặc thù sao cho tự nhiên trong ngôn ngữ đích.\n"
-                f"- Nếu có thuật ngữ chuyên ngành hoặc tên sản phẩm/dịch vụ, giữ hoặc chú ý phiên âm/phương án thể hiện phù hợp.\n"
-                f'- **Chỉ trả về phần nội dung dịch thuần túy, không thêm bất kỳ dấu ngoặc kép (" "") bao quanh cả đoạn,không kèm ký hiệu <<<BEGIN>>> hoặc <<<END>>> hoặc bất kỳ ký tự/thẻ, ký tự bổ sung nào khác**. '
-                f" Nếu nội dung dịch có dấu ngoặc kép nội bộ do cấu trúc ngôn ngữ đích yêu cầu, chỉ giữ đúng vị trí của dấu đó, không thêm dấu bao bên ngoài.\n"
-                f"- Không thêm bình luận, giải thích hay chú giải nào khác; chỉ output đúng văn bản dịch.\n"
-                f"Đoạn cần dịch:\n"
-                f"<<<BEGIN>>>\n"
-                f"{text}\n"
-                f"<<<END>>>"
-            )
+            prompt = self._build_translation_prompt(text, target_lang)
 
             translation_config = self.config.get("translation_config", {}).get("llm", {})
             payload = {
@@ -211,10 +198,10 @@ class Translator:
     def translate_text(self, text: str, target_lang: str, selected_api: str, dialog_selector=None) -> Tuple[Optional[str], Optional[str]]:
         """Main translation method that routes to appropriate API based on selection"""
         if selected_api == "XAI":
-            return self.translate_text_for_dialogue_xai(text, target_lang)
+            return self.translate_with_xai_api(text, target_lang)
         elif selected_api == "ChatGPT":
-            return self.translate_text_for_dialogue_chatgpt(text, target_lang)
+            return self.translate_with_chatgpt_api(text, target_lang)
         elif selected_api == "LLM":
-            return self.translate_text_for_dialogue_llm(text, target_lang, dialog_selector)
+            return self.translate_with_llm_api(text, target_lang, dialog_selector)
         else:
             return text, f"Unknown API: {selected_api}" 

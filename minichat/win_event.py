@@ -1,10 +1,10 @@
 import ctypes
-from minichat.telegram_integration import get_correct_telegram_hwnd, sync_z_order_with_telegram
+from minichat.telegram_integration import get_telegram_window_handle, sync_window_z_order
 
 # Windows API setup
 user32 = ctypes.windll.user32
 
-def win_event_callback(
+def window_event_handler(
     hWinEventHook: int,
     event: int,
     hwnd: int,
@@ -17,17 +17,17 @@ def win_event_callback(
 ) -> None:
     try:
         if event == config.EVENT_OBJECT_REORDER or event == config.EVENT_SYSTEM_FOREGROUND:
-            if hwnd == get_correct_telegram_hwnd(window_state):
+            if hwnd == get_telegram_window_handle(window_state):
                 if (
                     window_state.sam_mini_chat_win
                     and window_state.sam_mini_chat_win.winfo_exists()
                 ):
                     widget_hwnd = window_state.sam_mini_chat_win.winfo_id()
-                    sync_z_order_with_telegram(hwnd, widget_hwnd, config)
+                    sync_window_z_order(hwnd, widget_hwnd, config)
     except Exception as e:
-        print(f"Error in win_event_callback: {e}")
+        print(f"Error in window_event_handler: {e}")
 
-def setup_z_order_monitoring(config, window_state) -> None:
+def setup_window_monitoring(config, window_state) -> None:
     try:
         WinEventProcType = ctypes.WINFUNCTYPE(
             None,
@@ -42,7 +42,7 @@ def setup_z_order_monitoring(config, window_state) -> None:
 
         window_state.z_order_callback = WinEventProcType(
             lambda hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime: 
-            win_event_callback(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime, config, window_state)
+            window_event_handler(hWinEventHook, event, hwnd, idObject, idChild, dwEventThread, dwmsEventTime, config, window_state)
         )
 
         user32.SetWinEventHook(

@@ -1,8 +1,8 @@
 import tkinter as tk
 import threading
-from minichat.telegram_integration import get_correct_telegram_hwnd, send_message_to_telegram_input
+from minichat.telegram_integration import get_telegram_window_handle, send_message_to_telegram
 
-def send_sam_mini_chat_message(config, window_state, translator):
+def send_translated_message(config, window_state, translator):
     if window_state.sam_mini_chat_entry is None:
         return
 
@@ -12,7 +12,7 @@ def send_sam_mini_chat_message(config, window_state, translator):
 
     original_msg = msg
     window_state.sam_mini_chat_entry.delete("1.0", tk.END)
-    hwnd = get_correct_telegram_hwnd(window_state)
+    hwnd = get_telegram_window_handle(window_state)
     if hwnd is None:
         window_state.sam_mini_chat_entry.insert("1.0", original_msg)
         return
@@ -67,7 +67,7 @@ def send_sam_mini_chat_message(config, window_state, translator):
             loading_active = False
 
             # Send message and wait for completion
-            if send_message_to_telegram_input(hwnd, translated, config, window_state):
+            if send_message_to_telegram(hwnd, translated, config, window_state):
                 # Success animation
                 success_config = animation.get("success", {})
                 window_state.root.after(
@@ -122,7 +122,7 @@ def send_sam_mini_chat_message(config, window_state, translator):
 
     threading.Thread(target=send_thread, daemon=True).start()
 
-def close_chat_window(window_state):
+def close_translation_window(window_state):
     window_state.widget_sam_mini_chat_thread_running = False
     if window_state.sam_mini_chat_win is not None:
         try:

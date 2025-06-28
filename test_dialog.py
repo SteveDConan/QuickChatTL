@@ -48,10 +48,10 @@ def test_dialog_select():
     
     # Create test buttons
     tk.Button(root, text="Test API Dialog", 
-              command=lambda: dialog_selector.open_api_dialog(api_var, update_api, {"api_values": ["XAI", "ChatGPT", "LLM"]})).pack(pady=10)
+              command=lambda: dialog_selector.show_api_selection_dialog(api_var, update_api, {"api_values": ["XAI", "ChatGPT", "LLM"]})).pack(pady=10)
     
     tk.Button(root, text="Test Language Dialog", 
-              command=lambda: dialog_selector.open_lang_dialog(target_lang_var, update_target_lang)).pack(pady=10)
+              command=lambda: dialog_selector.show_language_selection_dialog(target_lang_var, update_target_lang)).pack(pady=10)
     
     tk.Button(root, text="Quit", command=root.quit).pack(pady=10)
     

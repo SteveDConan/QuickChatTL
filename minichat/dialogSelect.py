@@ -13,7 +13,7 @@ class DialogSelect:
         self.config = config
         self.window_state = window_state
     
-    def prompt_for_firebase_url(self) -> Optional[str]:
+    def request_firebase_url(self) -> Optional[str]:
         """Prompt user for Firebase URL"""
         if self.config.firebase_url:
             return self.config.firebase_url
@@ -62,7 +62,7 @@ class DialogSelect:
         dialog.wait_window()
         return self.config.firebase_url
     
-    def open_api_dialog(self, api_var: tk.StringVar, update_api_callback: Callable[[str], None], styles: dict) -> None:
+    def show_api_selection_dialog(self, api_var: tk.StringVar, update_api_callback: Callable[[str], None], styles: dict) -> None:
         """Open API selection dialog"""
         apis = styles.get("api_values", ["XAI", "ChatGPT", "LLM"])
         dialog = tk.Toplevel(self.parent_window)
@@ -91,17 +91,17 @@ class DialogSelect:
                 border_color="#1B5E20" if is_selected else "#C8E6C9",
                 border_width=2 if is_selected else 1,
                 font=("Segoe UI", 13, "bold" if is_selected else "normal"),
-                command=lambda a=api: self._select_api(a, dialog, api_var, update_api_callback),
+                command=lambda a=api: self.handle_api_selection(a, dialog, api_var, update_api_callback),
             )
             btn.pack(pady=5, padx=10, fill="x")
     
-    def _select_api(self, api: str, dialog: tk.Toplevel, api_var: tk.StringVar, update_api_callback: Callable[[str], None]) -> None:
+    def handle_api_selection(self, api: str, dialog: tk.Toplevel, api_var: tk.StringVar, update_api_callback: Callable[[str], None]) -> None:
         """Handle API selection"""
         api_var.set(api)
         update_api_callback(api)
         dialog.destroy()
     
-    def open_lang_dialog(self, target_lang_var: tk.StringVar, update_target_lang_callback: Callable[[str], None]) -> None:
+    def show_language_selection_dialog(self, target_lang_var: tk.StringVar, update_target_lang_callback: Callable[[str], None]) -> None:
         """Open language selection dialog"""
         lang_cfg = self.config.config.get("language_config", {})
         available_langs = lang_cfg.get(
@@ -139,11 +139,11 @@ class DialogSelect:
                 border_color="#1976D2" if is_selected else "#90CAF9",
                 border_width=2 if is_selected else 1,
                 font=("Segoe UI", 13, "bold" if is_selected else "normal"),
-                command=lambda l=lang_label: self._select_lang(l, dialog, target_lang_var, update_target_lang_callback),
+                command=lambda l=lang_label: self.handle_language_selection(l, dialog, target_lang_var, update_target_lang_callback),
             )
             btn.pack(pady=4, padx=10, fill="x")
     
-    def _select_lang(self, lang: str, dialog: tk.Toplevel, target_lang_var: tk.StringVar, update_target_lang_callback: Callable[[str], None]) -> None:
+    def handle_language_selection(self, lang: str, dialog: tk.Toplevel, target_lang_var: tk.StringVar, update_target_lang_callback: Callable[[str], None]) -> None:
         """Handle language selection"""
         target_lang_var.set(lang)
         update_target_lang_callback(lang)

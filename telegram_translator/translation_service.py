@@ -61,6 +61,11 @@ class Translator:
         
         return complete_prompt
 
+    def _get_translation_config(self, api_name: str) -> dict:
+        """Get translation configuration for specific API from translation_settings.json"""
+        translation_config = self.config.get("translation_config", {})
+        return translation_config.get(api_name, {})
+
     def translate_with_xai_api(
         self, source_text: str, target_language: str = "vi"
     ) -> Tuple[Optional[str], Optional[str]]:
@@ -70,23 +75,23 @@ class Translator:
 
         try:
             translation_prompt = self._build_translation_prompt(source_text, target_language)
+            xai_config = self._get_translation_config("xai")
 
             request_headers = {
                 "Authorization": f"Bearer {self.xai_api_key}",
                 "Content-Type": "application/json",
             }
 
-            translation_config = self.config.get("translation_config", {}).get("xai", {})
             request_payload = {
-                "model": translation_config.get("model", "grok-beta"),
+                "model": xai_config.get("model", "grok-3-mini"),
                 "messages": [{"role": "user", "content": translation_prompt}],
-                "temperature": translation_config.get("temperature", 0.05),
-                "top_p": translation_config.get("top_p", 0.9),
-                "max_tokens": translation_config.get("max_tokens", 2000),
+                "temperature": xai_config.get("temperature", 0.05),
+                "top_p": xai_config.get("top_p", 0.9),
+                "max_tokens": xai_config.get("max_tokens", 2000),
             }
 
             api_response = requests.post(
-                translation_config.get("api_url", "https://api.x.ai/v1/chat/completions"),
+                xai_config.get("api_url", "https://api.xai.com/v1/chat/completions"),
                 headers=request_headers,
                 json=request_payload,
                 timeout=10,
@@ -112,27 +117,23 @@ class Translator:
 
         try:
             translation_prompt = self._build_translation_prompt(source_text, target_language)
+            chatgpt_config = self._get_translation_config("chatgpt")
 
             request_headers = {
                 "Authorization": f"Bearer {self.chatgpt_api_key}",
                 "Content-Type": "application/json",
             }
 
-            translation_config = self.config.get("translation_config", {}).get(
-                "chatgpt", {}
-            )
             request_payload = {
-                "model": translation_config.get("model", "gpt-4"),
+                "model": chatgpt_config.get("model", "gpt-4o"),
                 "messages": [{"role": "user", "content": translation_prompt}],
-                "temperature": translation_config.get("temperature", 0.05),
-                "top_p": translation_config.get("top_p", 0.9),
-                "max_tokens": translation_config.get("max_tokens", 2000),
+                "temperature": chatgpt_config.get("temperature", 0.05),
+                "top_p": chatgpt_config.get("top_p", 0.9),
+                "max_tokens": chatgpt_config.get("max_tokens", 2000),
             }
 
             api_response = requests.post(
-                translation_config.get(
-                    "api_url", "https://api.openai.com/v1/chat/completions"
-                ),
+                chatgpt_config.get("api_url", "https://api.openai.com/v1/chat/completions"),
                 headers=request_headers,
                 json=request_payload,
                 timeout=10,
@@ -174,14 +175,14 @@ class Translator:
             }
 
             translation_prompt = self._build_translation_prompt(source_text, target_language)
+            llm_config = self._get_translation_config("llm")
 
-            translation_config = self.config.get("translation_config", {}).get("llm", {})
             request_payload = {
-                "model": translation_config.get("model", "qwen3-8b"),
+                "model": llm_config.get("model", "qwen3-8b"),
                 "messages": [{"role": "user", "content": translation_prompt}],
-                "temperature": translation_config.get("temperature", 0.05),
-                "top_p": translation_config.get("top_p", 0.9),
-                "max_tokens": translation_config.get("max_tokens", 2000),
+                "temperature": llm_config.get("temperature", 0.05),
+                "top_p": llm_config.get("top_p", 0.9),
+                "max_tokens": llm_config.get("max_tokens", 2000),
             }
 
             api_response = requests.post(api_endpoint, headers=request_headers, json=request_payload, timeout=10)

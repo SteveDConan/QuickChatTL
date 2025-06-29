@@ -19,13 +19,13 @@ def load_config() -> Dict[str, Any]:
     config = {}
     
     # Load API keys
-    credentials_file = os.path.join(CONFIG_DIR, "credentials.json")
-    if os.path.exists(credentials_file):
+    api_keys_file = os.path.join(CONFIG_DIR, "api_keys.json")
+    if os.path.exists(api_keys_file):
         try:
-            with open(credentials_file, "r", encoding="utf-8") as f:
+            with open(api_keys_file, "r", encoding="utf-8") as f:
                 config.update(json.load(f))
         except Exception as e:
-            print(f"Error loading credentials.json: {e}")
+            print(f"Error loading api_keys.json: {e}")
     
     # Load widget config
     ui_components_file = os.path.join(CONFIG_DIR, "ui_components.json")
@@ -88,13 +88,13 @@ def save_config(config: Dict[str, Any]) -> bool:
             os.makedirs(CONFIG_DIR)
         
         # Save API keys
-        credentials = {
+        api_keys = {
             "xai_api_key": config.get("xai_api_key", ""),
             "chatgpt_api_key": config.get("chatgpt_api_key", ""),
             "llm_api_key": config.get("llm_api_key", "")
         }
-        with open(os.path.join(CONFIG_DIR, "credentials.json"), "w", encoding="utf-8") as f:
-            json.dump(credentials, f, indent=4, ensure_ascii=False)
+        with open(os.path.join(CONFIG_DIR, "api_keys.json"), "w", encoding="utf-8") as f:
+            json.dump(api_keys, f, indent=4, ensure_ascii=False)
         
         # Save widget config
         if "widget_config" in config:
